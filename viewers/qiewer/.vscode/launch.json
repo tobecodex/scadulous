@@ -5,23 +5,16 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "(gdb) Launch",
-      "type": "cppdbg",
+      "name": "(Windows) Launch",
+      "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/qiewer",
+      "program": "${workspaceFolder}/build/qiewer.exe",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
       "externalConsole": false,
-      "MIMode": "gdb",
-      "setupCommands": [
-        {
-          "description": "Enable pretty-printing for gdb",
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
-        }
-      ]
+      "visualizerFile": "c:\\Users\\Toby Bradshaw\\AppData\\Roaming\\Code\\User\\workspaceStorage\\d65f75b045c737c5dd04171279dee1a4\\tonka3000.qtvsctools\\qt.natvis.xml"
     }
   ]
 }

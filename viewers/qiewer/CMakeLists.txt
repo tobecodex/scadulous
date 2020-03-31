@@ -5,21 +5,19 @@ project("qiewer")
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set (CMAKE_PREFIX_PATH "C:\\Qt\\Qt-5.14.2")
 
 find_package(Qt5Widgets)
 find_package(Qt5Gui)
-find_package(Qt5OpenGL)
-find_package(OpenGL)
 find_package(Threads)
 
 set(sources
-    src/app.cpp
-    src/main.cpp
-    src/mesh.cpp
-    src/canvas.cpp
-    src/window.cpp
-    src/glmesh.cpp
-    src/loader.cpp
+  src/App.cpp
+  src/main.cpp
+  src/Mesh.cpp
+  src/GLMesh.cpp
+  src/Loader.cpp
+  src/OpenGLWindow.cpp
 )
 
 add_executable(${CMAKE_PROJECT_NAME}  ${sources})
@@ -27,7 +25,6 @@ add_executable(${CMAKE_PROJECT_NAME}  ${sources})
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}
   Qt5::Widgets
-  Qt5::OpenGL
   Qt5::Gui
   ${CMAKE_THREAD_LIBS_INIT}
   ${OPENGL_LIBRARIES}

@@ -1,4 +1,7 @@
-#include "app.h"
+#include <QtGui/QSurfaceFormat>
+#include <QtGui/QGuiApplication>
+
+#include "App.h"
 
 int main(int argc, char **argv)
 {

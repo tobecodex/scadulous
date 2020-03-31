@@ -23,11 +23,8 @@ public:
 
     bool empty() const;
 
-private:
     std::vector<GLfloat> vertices;
     std::vector<GLuint> indices;
-
-    friend class GLMesh;
 };
 
 #endif // MESH_H

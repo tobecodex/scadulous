@@ -3,33 +3,14 @@
 #include "loader.h"
 #include "vertex.h"
 
-Loader::Loader(QObject* parent, const QString& filename, bool is_reload)
-    : QThread(parent), filename(filename)
+Loader::Loader(const QString& filename, bool is_reload) : filename(filename)
 {
     // Nothing to do here
 }
 
-void Loader::run()
-{
-    Mesh* mesh = load_stl();
-    if (mesh)
-    {
-        if (mesh->empty())
-        {
-            //emit error_empty_mesh();
-            delete mesh;
-        }
-        else
-        {
-            //emit got_mesh(mesh, is_reload);
-            //emit loaded_file(filename);
-        }
-    }
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 
-void parallel_sort(Vertex* begin, Vertex* end, int threads)
+/*void parallel_sort(Vertex* begin, Vertex* end, int threads)
 {
     if (threads < 2 || end - begin < 2)
     {
@@ -53,7 +34,7 @@ void parallel_sort(Vertex* begin, Vertex* end, int threads)
         }
         std::inplace_merge(begin, mid, end);
     }
-}
+}*/
 
 Mesh* mesh_from_verts(uint32_t tri_count, QVector<Vertex>& verts)
 {
@@ -66,14 +47,14 @@ Mesh* mesh_from_verts(uint32_t tri_count, QVector<Vertex>& verts)
 
     // Check how many threads the hardware can safely support. This may return
     // 0 if the property can't be read so we shoud check for that too.
-    auto threads = std::thread::hardware_concurrency();
+    /*auto threads = std::thread::hardware_concurrency();
     if (threads == 0)
     {
         threads = 8;
-    }
+    }*/
 
     // Sort the set of vertices (to deduplicate)
-    parallel_sort(verts.begin(), verts.end(), threads);
+    // parallel_sort(verts.begin(), verts.end(), threads);
 
     // This vector will store triangles as sets of 3 indices
     std::vector<GLuint> indices(tri_count*3);
@@ -117,7 +98,8 @@ Mesh* Loader::load_stl()
     }
 
     // First, try to read the stl as an ASCII file
-    if (file.read(5) == "solid")
+    QString header(file.read(5));
+    if (header == "solid")
     {
         file.readLine(); // skip solid name
         const auto line = file.readLine().trimmed();
@@ -197,6 +179,11 @@ Mesh* Loader::read_stl_ascii(QFile& file)
     while (!file.atEnd() && okay)
     {
         const auto line = file.readLine().simplified();
+        //qDebug() << line;
+        if (line.size() == 0) {
+          continue;
+        }
+
         if (line.startsWith("endsolid"))
         {
             break;
@@ -211,6 +198,7 @@ Mesh* Loader::read_stl_ascii(QFile& file)
         for (int i=0; i < 3; ++i)
         {
             auto line = file.readLine().simplified().split(' ');
+            qDebug() << line;
             if (line[0] != "vertex")
             {
                 okay = false;

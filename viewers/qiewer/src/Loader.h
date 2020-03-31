@@ -5,23 +5,19 @@
 
 #include "mesh.h"
 
-class Loader : public QThread
+class Loader
 {
-    Q_OBJECT
-
 public:
-    explicit Loader(QObject* parent, const QString& filename, bool is_reload = false);
-    void run();
+    explicit Loader(const QString& filename, bool is_reload = false);
+
+    Mesh* load_stl();
 
 protected:
-    Mesh* load_stl();
 
     /*  Reads an ASCII stl, starting from the start of the file*/
     Mesh* read_stl_ascii(QFile& file);
     /*  Reads a binary stl, assuming we're at the end of the header */
     Mesh* read_stl_binary(QFile& file);
-
-signals:
 
 private:
     const QString filename;

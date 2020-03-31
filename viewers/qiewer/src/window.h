@@ -1,19 +1,18 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include <QMainWindow>
-#include <QActionGroup>
-#include <QFileSystemWatcher>
-#include <QCollator>
+#include <QWindow>
+//#include <QActionGroup>
+//#include <QFileSystemWatcher>
 
 class Canvas;
 
-class Window : public QMainWindow
+class Window : public QWindow
 {
   Q_OBJECT
 
 public:
-  explicit Window(QWidget* parent=0);
+  explicit Window(QWindow* parent = NULL);
 
   bool load_stl(const QString &filename);
 
@@ -30,13 +29,14 @@ public slots:
 private slots:
   
 private:
-  QFileSystemWatcher *watcher;
+  //QFileSystemWatcher *watcher;
 
-  QAction* const open_action;
-  QAction* const about_action;
-  QAction* const quit_action;
+  //QAction* const open_action;
+  //QAction* const about_action;
+  //QAction* const quit_action;
 
-  Canvas *canvas;
+  //QOpenGLContext *m_context;
+  //QOpenGLPaintDevice *m_device;
 };
 
 #endif // WINDOW_H
