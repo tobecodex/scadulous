@@ -8,7 +8,7 @@
 
 #include <QDebug>
 
-Loader::Loader(const std::string &filename, bool is_reload) : _filename(filename)
+Loader::Loader()
 {
 }
 
@@ -92,30 +92,35 @@ static Mesh* mesh_from_verts(unsigned int tri_count, std::vector<Vertex>& verts)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Mesh* Loader::load_stl()
+Mesh* Loader::load_stl(const std::string &filename)
 {
-  std::ifstream file(_filename, std::ifstream::in);
+  std::ifstream file(filename, std::ifstream::in);
   if (file.fail())
   {
     qDebug() << "Missing/bad file: ";
     return NULL;
   }
 
+  return load_stl(file);
+}
+
+Mesh *Loader::load_stl(std::istream &input)
+{
   const int HEADER_LEN(5);
   char header[HEADER_LEN + 1];
-  file.get(header, HEADER_LEN + 1);
+  input.get(header, HEADER_LEN + 1);
 
   if (std::string(header, HEADER_LEN) == "solid")
   {
     std::string line;
-    file >> std::skipws >> line;
+    input >> std::skipws >> line;
     
-    file >> std::skipws >> line;
+    input >> std::skipws >> line;
     if (line.find("facet") == 0 ||
         line.find ("endsolid") == 0)
     {
-        file.seekg(0);
-        return read_stl_ascii(file);
+        input.seekg(0);
+        return read_stl_ascii(input);
     }
       // confusing_stl = true;
   }
@@ -124,12 +129,11 @@ Mesh* Loader::load_stl()
       // confusing_stl = false;
   }
 
-  // Otherwise, skip the rest of the header material and read as binary
-  file.seekg(0);
-  return read_stl_binary(file);
+  input.seekg(0);
+  return read_stl_binary(input);
 }
 
-Mesh* Loader::read_stl_binary(std::istream &file)
+Mesh* Loader::read_stl_binary(std::istream &input)
 {
     /*QDataStream data(&file);
     data.setByteOrder(QDataStream::LittleEndian);
@@ -178,18 +182,18 @@ Mesh* Loader::read_stl_binary(std::istream &file)
     return NULL;
 }
 
-Mesh* Loader::read_stl_ascii(std::istream &file)
+Mesh* Loader::read_stl_ascii(std::istream &input)
 {
-  auto nextLine = [&file]() -> std::string {
+  auto nextLine = [&input]() -> std::string {
     std::string line;
 
-    while (file.peek() == ' ')
-      file.get();
+    while (input.peek() == ' ')
+      input.get();
 
     do {
-      std::getline(file, line);
+      std::getline(input, line);
     }
-    while (line.size() == 0 && !file.eof());
+    while (line.size() == 0 && !input.eof());
     return line;
   };
 
@@ -202,7 +206,7 @@ Mesh* Loader::read_stl_ascii(std::istream &file)
 
   nextLine();
   bool okay = true;
-  while (!file.eof() && okay)
+  while (!input.eof() && okay)
   {
     std::string line = nextLine();
     if (startsWith(line, "endsolid")) {

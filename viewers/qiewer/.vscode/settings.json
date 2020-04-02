@@ -2,6 +2,8 @@
   "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools",
   "files.associations": {
     "qcoreapplication": "cpp",
-    "qopenglfunctions_4_3_core": "cpp"
+    "qopenglfunctions_4_3_core": "cpp",
+    "thread": "cpp",
+    "optional": "cpp"
   }
 }

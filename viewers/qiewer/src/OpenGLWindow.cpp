@@ -99,6 +99,9 @@ void OpenGLWindow::setMesh(Mesh *m)
 
 void OpenGLWindow::render()
 {
+  if (!isExposed() || !m_mesh)
+    return;
+
   m_context->makeCurrent(this);
 
   GLfloat vertices[] = {

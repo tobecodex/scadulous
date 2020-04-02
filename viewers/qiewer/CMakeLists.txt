@@ -7,9 +7,12 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set (CMAKE_PREFIX_PATH "C:\\Qt\\Qt-5.14.2")
 
+SET(Boost_USE_STATIC_LIBS OFF)
+SET(Boost_USE_MULTITHREAD ON)
+
 find_package(Qt5Widgets)
 find_package(Qt5Gui)
-find_package(Threads)
+find_package(Boost 1.72)
 
 set(sources
   src/App.cpp
@@ -17,7 +20,13 @@ set(sources
   src/Mesh.cpp
   src/Loader.cpp
   src/OpenGLWindow.cpp
+  src/SocketServer.cpp
 )
+
+add_definitions(-DWIN32_LEAN_AND_MEAN -DBOOST_ASIO_NO_DEPRECATED)
+
+link_directories(${Boost_LIBRARY_DIRS})
+include_directories(${Boost_INCLUDE_DIRS})
 
 add_executable(${CMAKE_PROJECT_NAME}  ${sources})
 
@@ -27,4 +36,5 @@ target_link_libraries(
   Qt5::Gui
   ${CMAKE_THREAD_LIBS_INIT}
   ${OPENGL_LIBRARIES}
+  ${Boost_LIBRARIES}
 )

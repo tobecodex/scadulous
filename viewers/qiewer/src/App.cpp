@@ -5,10 +5,11 @@
 #include "OpenGLWindow.h"
 
 #include "Mesh.h"
-#include "GLMesh.h"
 #include "Loader.h"
 
-App::App(int& argc, char *argv[]) : QGuiApplication(argc, argv), window(new OpenGLWindow())
+#include <iostream>
+
+App::App(int& argc, char *argv[]) : QGuiApplication(argc, argv), _window(new OpenGLWindow()), _socketServer(0)
 {
   QCoreApplication::setOrganizationName("tobecodex");
   QCoreApplication::setOrganizationDomain("https://github.com/tobecodex");
@@ -17,18 +18,17 @@ App::App(int& argc, char *argv[]) : QGuiApplication(argc, argv), window(new Open
   QSurfaceFormat format;
   format.setSamples(16);
 
-  window->setFormat(format);
-  window->resize(600, 400);
-  window->show();
+  _window->setFormat(format);
+  _window->resize(600, 400);
+  _window->show();
 
-  Loader *loader = new Loader("../test_files/teapot.stl");
-  Mesh *m = loader->load_stl();
-  window->setMesh(m);
+  _socketServer = new SocketServer();
+  _socketServer->start(*this);
 }
 
 App::~App()
 {
-  delete window;
+  delete _window;
 }
 
 bool App::event(QEvent* e)
@@ -42,4 +42,14 @@ bool App::event(QEvent* e)
     {
         return QGuiApplication::event(e);
     }
+}
+
+void App::onConnect(std::iostream &s)
+{
+  Loader loader;
+  Mesh *m = loader.load_stl(s);
+}
+
+void App::onClose(std::iostream &s)
+{
 }

@@ -9,9 +9,10 @@
 class Loader
 {
 public:
-    Loader(const std::string &filename, bool is_reload = false);
+    Loader();
 
-    Mesh* load_stl();
+    Mesh* load_stl(const std::string &);
+    Mesh* load_stl(std::istream &);
 
 protected:
 
