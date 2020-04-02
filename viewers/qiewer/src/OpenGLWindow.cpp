@@ -78,9 +78,7 @@ void OpenGLWindow::setMesh(Mesh *m)
   }
 
   m_mesh = m;
-
- 
-  requestUpdate();
+  QMetaObject::invokeMethod(this, [this]{ this->requestUpdate(); });
 }
 
  void OpenGLWindow::showEvent(QShowEvent *ev)

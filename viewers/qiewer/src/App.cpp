@@ -47,7 +47,10 @@ bool App::event(QEvent* e)
 void App::onConnect(std::iostream &s)
 {
   Loader loader;
-  Mesh *m = loader.load_stl(s);
+  std::string str(std::istreambuf_iterator<char>(s), {});
+  std::istringstream inp(str);
+  Mesh *m = loader.load_stl(inp);
+  _window->setMesh(m);
 }
 
 void App::onClose(std::iostream &s)
