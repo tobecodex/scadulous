@@ -1,26 +1,26 @@
 #ifndef LOADER_H
 #define LOADER_H
 
-#include <QThread>
+#include <vector>
+#include <string>
 
 #include "mesh.h"
 
 class Loader
 {
 public:
-    explicit Loader(const QString& filename, bool is_reload = false);
+    Loader(const std::string &filename, bool is_reload = false);
 
     Mesh* load_stl();
 
 protected:
 
-    /*  Reads an ASCII stl, starting from the start of the file*/
-    Mesh* read_stl_ascii(QFile& file);
+    Mesh* read_stl_ascii(std::istream &);
     /*  Reads a binary stl, assuming we're at the end of the header */
-    Mesh* read_stl_binary(QFile& file);
+    Mesh* read_stl_binary(std::istream &);
 
 private:
-    const QString filename;
+    const std::string _filename;
 };
 
 #endif // LOADER_H

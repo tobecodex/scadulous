@@ -15,7 +15,6 @@ set(sources
   src/App.cpp
   src/main.cpp
   src/Mesh.cpp
-  src/GLMesh.cpp
   src/Loader.cpp
   src/OpenGLWindow.cpp
 )

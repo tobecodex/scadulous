@@ -3,9 +3,13 @@
 #include "loader.h"
 #include "vertex.h"
 
-Loader::Loader(const QString& filename, bool is_reload) : filename(filename)
+#include <fstream>
+#include <sstream>
+
+#include <QDebug>
+
+Loader::Loader(const std::string &filename, bool is_reload) : _filename(filename)
 {
-    // Nothing to do here
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -36,11 +40,11 @@ Loader::Loader(const QString& filename, bool is_reload) : filename(filename)
     }
 }*/
 
-Mesh* mesh_from_verts(uint32_t tri_count, QVector<Vertex>& verts)
+static Mesh* mesh_from_verts(unsigned int tri_count, std::vector<Vertex>& verts)
 {
     // Save indicies as the second element in the array
     // (so that we can reconstruct triangle order after sorting)
-    for (size_t i=0; i < tri_count*3; ++i)
+    for (unsigned int i=0; i < tri_count*3; ++i)
     {
         verts[i].i = i;
     }
@@ -57,13 +61,13 @@ Mesh* mesh_from_verts(uint32_t tri_count, QVector<Vertex>& verts)
     // parallel_sort(verts.begin(), verts.end(), threads);
 
     // This vector will store triangles as sets of 3 indices
-    std::vector<GLuint> indices(tri_count*3);
+    std::vector<unsigned int> indices(tri_count*3);
 
     // Go through the sorted vertex list, deduplicating and creating
     // an indexed geometry representation for the triangles.
     // Unique vertices are moved so that they occupy the first vertex_count
     // positions in the verts array.
-    size_t vertex_count = 0;
+    unsigned int vertex_count = 0;
     for (auto v : verts)
     {
         if (!vertex_count || v != verts[vertex_count-1])
@@ -74,7 +78,7 @@ Mesh* mesh_from_verts(uint32_t tri_count, QVector<Vertex>& verts)
     }
     verts.resize(vertex_count);
 
-    std::vector<GLfloat> flat_verts;
+    std::vector<float> flat_verts;
     flat_verts.reserve(vertex_count*3);
     for (auto v : verts)
     {
@@ -90,40 +94,44 @@ Mesh* mesh_from_verts(uint32_t tri_count, QVector<Vertex>& verts)
 
 Mesh* Loader::load_stl()
 {
-    QFile file(filename);
-    if (!file.open(QIODevice::ReadOnly))
-    {
-        //emit error_missing_file();
-        return NULL;
-    }
+  std::ifstream file(_filename, std::ifstream::in);
+  if (file.fail())
+  {
+    qDebug() << "Missing/bad file: ";
+    return NULL;
+  }
 
-    // First, try to read the stl as an ASCII file
-    QString header(file.read(5));
-    if (header == "solid")
-    {
-        file.readLine(); // skip solid name
-        const auto line = file.readLine().trimmed();
-        if (line.startsWith("facet") ||
-            line.startsWith("endsolid"))
-        {
-            file.seek(0);
-            return read_stl_ascii(file);
-        }
-        // confusing_stl = true;
-    }
-    else
-    {
-        // confusing_stl = false;
-    }
+  const int HEADER_LEN(5);
+  char header[HEADER_LEN + 1];
+  file.get(header, HEADER_LEN + 1);
 
-    // Otherwise, skip the rest of the header material and read as binary
-    file.seek(0);
-    return read_stl_binary(file);
+  if (std::string(header, HEADER_LEN) == "solid")
+  {
+    std::string line;
+    file >> std::skipws >> line;
+    
+    file >> std::skipws >> line;
+    if (line.find("facet") == 0 ||
+        line.find ("endsolid") == 0)
+    {
+        file.seekg(0);
+        return read_stl_ascii(file);
+    }
+      // confusing_stl = true;
+  }
+  else
+  {
+      // confusing_stl = false;
+  }
+
+  // Otherwise, skip the rest of the header material and read as binary
+  file.seekg(0);
+  return read_stl_binary(file);
 }
 
-Mesh* Loader::read_stl_binary(QFile& file)
+Mesh* Loader::read_stl_binary(std::istream &file)
 {
-    QDataStream data(&file);
+    /*QDataStream data(&file);
     data.setByteOrder(QDataStream::LittleEndian);
     data.setFloatingPointPrecision(QDataStream::SinglePrecision);
 
@@ -161,71 +169,97 @@ Mesh* Loader::read_stl_binary(QFile& file)
         b += 3 * sizeof(float) + sizeof(uint16_t);
     }
 
-    /*if (confusing_stl)
+    if (confusing_stl)
     {
         emit warning_confusing_stl();
-    }*/
+    }
 
-    return mesh_from_verts(tri_count, verts);
+    return mesh_from_verts(tri_count, verts);*/
+    return NULL;
 }
 
-Mesh* Loader::read_stl_ascii(QFile& file)
+Mesh* Loader::read_stl_ascii(std::istream &file)
 {
-    file.readLine();
-    uint32_t tri_count = 0;
-    QVector<Vertex> verts(tri_count*3);
+  auto nextLine = [&file]() -> std::string {
+    std::string line;
 
-    bool okay = true;
-    while (!file.atEnd() && okay)
+    while (file.peek() == ' ')
+      file.get();
+
+    do {
+      std::getline(file, line);
+    }
+    while (line.size() == 0 && !file.eof());
+    return line;
+  };
+
+  auto startsWith = [](std::string &s, std::string f) -> bool {
+    return s.find(f) == 0;
+  };
+
+  uint32_t tri_count = 0;
+  std::vector<Vertex> verts(tri_count*3);
+
+  nextLine();
+  bool okay = true;
+  while (!file.eof() && okay)
+  {
+    std::string line = nextLine();
+    if (startsWith(line, "endsolid")) {
+      break;
+    }
+    
+    if (!startsWith(line, "facet normal") ||
+        !startsWith(nextLine(), "outer loop"))
     {
-        const auto line = file.readLine().simplified();
-        //qDebug() << line;
-        if (line.size() == 0) {
-          continue;
-        }
-
-        if (line.startsWith("endsolid"))
-        {
-            break;
-        }
-        else if (!line.startsWith("facet normal") ||
-                 !file.readLine().simplified().startsWith("outer loop"))
-        {
-            okay = false;
-            break;
-        }
-
-        for (int i=0; i < 3; ++i)
-        {
-            auto line = file.readLine().simplified().split(' ');
-            qDebug() << line;
-            if (line[0] != "vertex")
-            {
-                okay = false;
-                break;
-            }
-            const float x = line[1].toFloat(&okay);
-            const float y = line[2].toFloat(&okay);
-            const float z = line[3].toFloat(&okay);
-            verts.push_back(Vertex(x, y, z));
-        }
-        if (!file.readLine().trimmed().startsWith("endloop") ||
-            !file.readLine().trimmed().startsWith("endfacet"))
-        {
-            okay = false;
-            break;
-        }
-        tri_count++;
+      okay = false;
+      break;
     }
 
-    if (okay)
+    for (int i=0; i < 3; ++i)
     {
-        return mesh_from_verts(tri_count, verts);
+      std::string tok;
+      std::istringstream l(nextLine());
+      
+      l >> tok;
+      if (tok != "vertex")
+      {
+        okay = false;
+        break;
+      }
+
+      try {
+        l >> tok; 
+        const float x = std::stof(tok);
+        l >> tok;
+        const float y = std::stof(tok);
+        l >> tok;
+        const float z = std::stof(tok);
+        verts.push_back(Vertex(x, y, z));
+      }
+      catch (std::invalid_argument) {
+        okay = false;
+      }
     }
-    else
+
+    if (!startsWith(nextLine(), "endloop") ||
+        !startsWith(nextLine(), "endfacet"))
     {
-        //emit error_bad_stl();
-        return NULL;
+      okay = false;
+      break;
     }
+
+    tri_count++;
+  }
+
+  if (okay)
+  {
+      return mesh_from_verts(tri_count, verts);
+  }
+  else
+  {
+      //emit error_bad_stl();
+      return NULL;
+  }
 }
 
