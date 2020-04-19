@@ -1,60 +1,45 @@
-#include <QtGui/QWindow>
-#include <QtGui/QOpenGLFunctions>
-
-#include <QtGui/QOpenGLShaderProgram>
-#include <QtGui/QScreen>
-#include <QVector3D>
-
-QT_BEGIN_NAMESPACE
-class QPainter;
-class QOpenGLContext;
-class QOpenGLPaintDevice;
-class QOpenGLFunctions_4_3_Core; 
-QT_END_NAMESPACE
+#include <QOpenGLWidget>
+#include <QOpenGLBuffer>
+#include <QOpenGLVertexArrayObject>
 
 #include "Mesh.h"
 #include "Camera.h"
 
-class OpenGLWindow : public QWindow, protected QOpenGLFunctions
+class QOpenGLDebugLogger;
+class QOpenGLShaderProgram;
+
+class OpenGLWindow : public QOpenGLWidget, protected QOpenGLFunctions
 {
   Q_OBJECT
 
 public:
-  explicit OpenGLWindow(QWindow *parent = 0);
+  explicit OpenGLWindow(QWidget *parent);
   ~OpenGLWindow();
-
-  virtual void initialize();
 
   virtual void setMesh(Mesh *);
 
-  virtual void render();
-  virtual void render(QPainter *painter);
-
-public slots:
-
 protected:
-  void showEvent(QShowEvent *);
-  void resizeEvent(QResizeEvent *);
 
-  bool event(QEvent *) override;
-  void exposeEvent(QExposeEvent *) override;
-
-  void keyPressEvent(QKeyEvent *);
+  void keyPressEvent(QKeyEvent *) override;
   void keyReleaseEvent(QKeyEvent *);
 
+  void initializeGL() override;
+  void paintGL() override;
+  void resizeGL(int w, int h) override;
+  
 private:
   int m_frames;
 
   Mesh *m_mesh;
   GLfloat *m_grid;
-
-  QOpenGLContext *m_context;
-  QOpenGLPaintDevice *m_device;
+  Camera m_camera;
 
   GLuint m_posLoc;
   GLuint m_worldLoc, m_cameraLoc;
   QOpenGLShaderProgram *m_currentShader;
+  QOpenGLVertexArrayObject m_vertexArrayObject;
+  QOpenGLBuffer m_gridBuffer;
 
-private:
-  Camera m_camera;
+  void checkDebugLog();
+  QOpenGLDebugLogger *m_debugLogger;
 };

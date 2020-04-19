@@ -1,12 +1,12 @@
 #ifndef APP_H
 #define APP_H
 
-#include <QGUIApplication>
+#include <QApplication>
+
+class MainWindow;
 #include "SocketServer.h"
 
-class OpenGLWindow;
-
-class App : public QGuiApplication, public SocketClient
+class App : public QApplication, public SocketClient
 {
   Q_OBJECT
 
@@ -21,8 +21,8 @@ protected:
   bool event(QEvent* e) override;
 
 private:
-  OpenGLWindow *const _window;
-  SocketServer *_socketServer;
+  MainWindow * _window;
+  SocketServer *const _socketServer;
 };
 
 #endif // APP_H

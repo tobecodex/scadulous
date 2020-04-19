@@ -2,27 +2,25 @@
 #include <QFileOpenEvent>
 
 #include "App.h"
-#include "OpenGLWindow.h"
+#include "MainWindow.h"
+#include "SocketServer.h"
 
 #include "Mesh.h"
 #include "Loader.h"
 
 #include <iostream>
 
-App::App(int& argc, char *argv[]) : QGuiApplication(argc, argv), _window(new OpenGLWindow()), _socketServer(0)
+App::App(int& argc, char *argv[]) 
+: QApplication(argc, argv), _window(0), _socketServer(new SocketServer())
 {
   QCoreApplication::setOrganizationName("tobecodex");
   QCoreApplication::setOrganizationDomain("https://github.com/tobecodex");
   QCoreApplication::setApplicationName("qiewer");
 
-  QSurfaceFormat format;
-  format.setSamples(16);
-
-  _window->setFormat(format);
+  _window = new MainWindow();
   _window->resize(1024, 768);
   _window->show();
 
-  _socketServer = new SocketServer();
   _socketServer->start(*this);
 }
 

@@ -5,7 +5,7 @@ project("qiewer")
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set (CMAKE_PREFIX_PATH "C:\\Qt\\Qt-5.14.2")
+set(CMAKE_PREFIX_PATH "C:\\Qt\\Qt-5.14.2")
 
 SET(Boost_USE_STATIC_LIBS OFF)
 SET(Boost_USE_MULTITHREAD ON)
@@ -20,6 +20,7 @@ set(sources
   src/Mesh.cpp
   src/Loader.cpp
   src/Camera.cpp
+  src/MainWindow.cpp
   src/OpenGLWindow.cpp
   src/SocketServer.cpp
 )

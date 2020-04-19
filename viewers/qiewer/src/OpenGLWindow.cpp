@@ -1,15 +1,9 @@
-#include <QDebug>
-#include "openglwindow.h"
-
-#include <QtCore/QCoreApplication>
-
-#include <QtGui/QPainter>
-#include <QtGui/QOpenGLContext>
-#include <QtGui/QOpenGLPaintDevice>
-#include <QtGui/QKeyEvent>
-
+#include "OpenGLWindow.h"
 #include <QtWidgets/QMessageBox>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLDebugLogger>
 
+#include <QKeyEvent>
 
 #include "Mesh.h"
 #include "Loader.h"
@@ -32,27 +26,20 @@ static const char *vertexShaderSource =
 
 
 static const char *fragmentShaderSource =
+    "#version 330 core\n"
+    "out vec4 fragColor;\n"
     "void main() {\n"
-    "   gl_FragColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);\n"
+    "   fragColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);\n"
     "}\n";
 
-OpenGLWindow::OpenGLWindow(QWindow *parent) 
-: QWindow(parent), m_context(0), m_device(0), m_mesh(0), m_frames(0)
+OpenGLWindow::OpenGLWindow(QWidget *parent) 
+: QOpenGLWidget(parent), m_mesh(0), m_frames(0), m_debugLogger(0), m_gridBuffer(QOpenGLBuffer::VertexBuffer)
 {
-  setSurfaceType(QWindow::OpenGLSurface);
+  setFocusPolicy(Qt::StrongFocus);
 
-  // Specify the format and create platform-specific surface
-  QSurfaceFormat format;
-  format.setDepthBufferSize( 24 );
-  format.setMajorVersion( 4 );
-  format.setMinorVersion( 3 );
-  format.setSamples( 4 );
-  format.setProfile( QSurfaceFormat::CoreProfile );
-  setFormat( format );
-  create();
-
-  m_camera.position(QVector3D(0, -2, -10));
   m_camera.perspective(40.0f, (float)width() / (float)height(), 0.1f, 100.0f);
+  m_camera.position(QVector3D(0, 2, -10));
+  m_camera.lookAt(QVector3D(0, 0, 0));
 
   float gridSize = 0.5f;
   int minX = -1, maxX = 1;
@@ -86,26 +73,101 @@ OpenGLWindow::OpenGLWindow(QWindow *parent)
 
 OpenGLWindow::~OpenGLWindow()
 {
-  delete m_device;
 }
 
-void OpenGLWindow::render(QPainter *painter)
+
+void OpenGLWindow::checkDebugLog()
 {
-  Q_UNUSED(painter);
+  const QList<QOpenGLDebugMessage> messages = m_debugLogger->loggedMessages();
+  for (const QOpenGLDebugMessage &message : messages) {
+    qDebug() << message;
+  }
 }
 
-void OpenGLWindow::initialize()
+void OpenGLWindow::initializeGL()
 {
+  initializeOpenGLFunctions();
+
+  // Setup a debug logger
+  QOpenGLContext *currentContext = QOpenGLContext::currentContext();
+  m_debugLogger = new QOpenGLDebugLogger(this);
+  m_debugLogger->initialize();
+
+  // Let's see what we've got..
+  qDebug() << (const char *)glGetString(GL_VERSION);
+  auto extensions = currentContext->extensions();
+  for (auto i = extensions.begin(); i != extensions.end(); i++) {
+    qDebug() << *i;
+  }
+
+  // Compile and link the shaders
   m_currentShader = new QOpenGLShaderProgram(this);
   if (!m_currentShader->addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShaderSource)) {
     qDebug() << m_currentShader->log();
   }
-  m_currentShader->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShaderSource);
-  m_currentShader->link();
+  if (!m_currentShader->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShaderSource)) {
+    qDebug() << m_currentShader->log();
+  }
+  if (!m_currentShader->link()) {
+    qDebug() << m_currentShader->log();
+  }
 
+  // Grab the attribute locations
   m_posLoc = m_currentShader->attributeLocation("pos");
   m_worldLoc = m_currentShader->uniformLocation("world");
   m_cameraLoc = m_currentShader->uniformLocation("camera");
+
+  // Create our (required) VAO
+  m_vertexArrayObject.create();
+  m_vertexArrayObject.bind();
+
+  m_gridBuffer.create();
+  checkDebugLog();
+  m_gridBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+  checkDebugLog();
+  m_gridBuffer.bind();
+  checkDebugLog();
+  m_gridBuffer.allocate(m_grid, 60 * sizeof(float));
+  checkDebugLog();
+
+  m_currentShader->enableAttributeArray("pos");
+  m_currentShader->setAttributeBuffer("pos", GL_FLOAT, 0, 3);
+
+  m_vertexArrayObject.release();
+}
+
+void OpenGLWindow::paintGL()
+{
+  glClear(GL_COLOR_BUFFER_BIT);
+
+  QMatrix4x4 world;
+  world.setToIdentity();
+
+  m_currentShader->bind();
+  //m_currentShader->setUniformValue(m_worldLoc, world);
+  m_currentShader->setUniformValue(m_cameraLoc, m_camera.matrix());
+  checkDebugLog();
+
+  if (m_mesh) {
+    glVertexAttribPointer(m_posLoc, 3, GL_FLOAT, GL_FALSE, 0, &m_mesh->vertices[0]);
+
+    glEnableVertexAttribArray(m_posLoc);
+    glDrawArrays(GL_POINTS, 0, (int)m_mesh->vertices.size() / 3);
+    glDisableVertexAttribArray(m_posLoc);
+  }
+
+  m_vertexArrayObject.bind(); 
+  glDrawArrays(GL_LINES, 0, 20);
+  checkDebugLog();
+  m_vertexArrayObject.release();
+  m_currentShader->release();
+
+  checkDebugLog();
+}
+
+void OpenGLWindow::resizeGL(int w, int h)
+{
+  m_camera.perspective(40.0f, (float)width() / (float)height(), 0.1f, 100.0f);
 }
 
 void OpenGLWindow::setMesh(Mesh *m)
@@ -115,26 +177,7 @@ void OpenGLWindow::setMesh(Mesh *m)
   }
 
   m_mesh = m;
-  QMetaObject::invokeMethod(this, [this]{ this->requestUpdate(); });
-}
-
-void OpenGLWindow::showEvent(QShowEvent *ev)
-{
-  if (!m_context) {
-    m_context = new QOpenGLContext(this);
-    m_context->setFormat(requestedFormat());
-    m_context->create();
-  
-    m_context->makeCurrent(this);
-    
-    initializeOpenGLFunctions();
-    initialize();
-  }
-}
-
-void OpenGLWindow::resizeEvent(QResizeEvent *ev)
-{
-  m_camera.perspective(40.0f, (float)width() / (float)height(), 0.1f, 100.0f);
+  //QMetaObject::invokeMethod(this, [this]{ this->requestUpdate(); });
 }
 
 static void cube() {
@@ -196,67 +239,6 @@ static void cube() {
   };
 }
 
-void OpenGLWindow::render()
-{
-  if (!isExposed())
-    return;
-
-  m_context->makeCurrent(this);
-
- 
-  const qreal retinaScale = devicePixelRatio();
-  glViewport(0, 0, width() * retinaScale, height() * retinaScale);
-
-  glClear(GL_COLOR_BUFFER_BIT);
-
-  QMatrix4x4 world;
-  world.setToIdentity();
-
-  m_currentShader->bind();
-  //m_currentShader->setUniformValue(m_worldLoc, world);
-  m_currentShader->setUniformValue(m_cameraLoc, m_camera.matrix());
-
-  if (m_mesh) {
-    glVertexAttribPointer(m_posLoc, 3, GL_FLOAT, GL_FALSE, 0, &m_mesh->vertices[0]);
-
-    glEnableVertexAttribArray(m_posLoc);
-    glDrawArrays(GL_POINTS, 0, (int)m_mesh->vertices.size() / 3);
-    glDisableVertexAttribArray(m_posLoc);
-  }
-  
-  glVertexAttribPointer(m_posLoc, 3, GL_FLOAT, GL_FALSE, 0, m_grid);
-
-  glEnableVertexAttribArray(m_posLoc);
-  glDrawArrays(GL_LINES, 0, 20);
-  glDisableVertexAttribArray(m_posLoc);
-
-  m_currentShader->release();
-
-  m_context->swapBuffers(this);
-  m_frames++;
-  
-  requestUpdate();
-}
-
-bool OpenGLWindow::event(QEvent *event)
-{
-  switch (event->type()) {
-  case QEvent::UpdateRequest:
-    render();
-    return true;
-  default:
-    return QWindow::event(event);
-  }
-}
-
-void OpenGLWindow::exposeEvent(QExposeEvent *event)
-{
-  Q_UNUSED(event);
-
-  if (isExposed())
-    render();
-}
-
 void OpenGLWindow::keyPressEvent(QKeyEvent *event)
 {
   switch (event->key()) {
@@ -316,6 +298,8 @@ void OpenGLWindow::keyPressEvent(QKeyEvent *event)
     }
     break;
   }
+
+  update();
 }
 
 void OpenGLWindow::keyReleaseEvent(QKeyEvent *event)
