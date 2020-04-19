@@ -4,6 +4,7 @@
     "qcoreapplication": "cpp",
     "qopenglfunctions_4_3_core": "cpp",
     "thread": "cpp",
-    "optional": "cpp"
+    "optional": "cpp",
+    "qtransform": "cpp"
   }
 }

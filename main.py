@@ -20,6 +20,9 @@ class Mesh:
   def export(self):
     self._mesh.export("mesh.stl")
 
+  def stl(self):
+    return trimesh.exchange.stl.export_stl_ascii(self._mesh)
+
   def split(self, p, n):
     plane, transform = self._mesh.section(n, p).to_planar()
     v,f = plane.triangulate()
@@ -51,10 +54,24 @@ class Mesh:
   def join(self, other):
     return Mesh(self._mesh.union(other._mesh))
 
+  def show():
+    self._mesh.show()
+
+def send(stl_ascii):
+  import socket
+
+  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  s.connect(("172.29.32.1", 4242))
+  s.send(stl_ascii.encode())
+
 m = Mesh()
-m.load("test_models/fuze.obj")
-m = m.split([0,0,0], [0,1,0])
-m[0].translate([0, 1, 0])
-m[1].scale(1.5)
-m = m[0].join(m[1])
-m.export()
+m.load("viewers/test_files/teapot.stl")
+#box = Mesh(trimesh.creation.box((1, 1, 1)))
+#m = box.join(m)
+#axis = Mesh(trimesh.creation.axis())
+#box = box.split([0,0,0], [0,1,0])
+#box[0].translate([0, 1, 0])
+#box[1].scale(1.5)
+#box = box[0].join(box[1])
+#m = m.join(axis)
+send(m.stl())

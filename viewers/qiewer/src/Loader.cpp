@@ -115,7 +115,6 @@ Mesh *Loader::load_stl(std::istream &input)
     std::string line;
     input >> std::skipws >> line;
     
-    input >> std::skipws >> line;
     if (line.find("facet") == 0 ||
         line.find ("endsolid") == 0)
     {

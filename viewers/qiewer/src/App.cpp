@@ -19,7 +19,7 @@ App::App(int& argc, char *argv[]) : QGuiApplication(argc, argv), _window(new Ope
   format.setSamples(16);
 
   _window->setFormat(format);
-  _window->resize(600, 400);
+  _window->resize(1024, 768);
   _window->show();
 
   _socketServer = new SocketServer();

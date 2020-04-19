@@ -19,6 +19,7 @@ set(sources
   src/main.cpp
   src/Mesh.cpp
   src/Loader.cpp
+  src/Camera.cpp
   src/OpenGLWindow.cpp
   src/SocketServer.cpp
 )
