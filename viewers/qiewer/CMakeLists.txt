@@ -10,9 +10,9 @@ set(CMAKE_PREFIX_PATH "C:\\Qt\\Qt-5.14.2")
 SET(Boost_USE_STATIC_LIBS OFF)
 SET(Boost_USE_MULTITHREAD ON)
 
-find_package(Qt5Widgets)
-find_package(Qt5Gui)
-find_package(Boost 1.72)
+find_package(Qt5Widgets REQUIRED)
+find_package(Qt5Gui REQUIRED)
+find_package(Boost 1.72 REQUIRED)
 
 set(sources
   src/App.cpp

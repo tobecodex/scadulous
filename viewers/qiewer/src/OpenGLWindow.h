@@ -34,11 +34,13 @@ private:
   GLfloat *m_grid;
   Camera m_camera;
 
+  bool m_dirtyMesh;
+
   GLuint m_posLoc;
   GLuint m_worldLoc, m_cameraLoc;
   QOpenGLShaderProgram *m_currentShader;
   QOpenGLVertexArrayObject m_vertexArrayObject;
-  QOpenGLBuffer m_gridBuffer;
+  QOpenGLBuffer m_gridBuffer, m_meshBuffer;
 
   void checkDebugLog();
   QOpenGLDebugLogger *m_debugLogger;

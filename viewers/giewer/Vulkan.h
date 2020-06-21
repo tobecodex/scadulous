@@ -99,14 +99,14 @@ public:
 
   bool hasPresentationSupport(VkSurfaceKHR surface)
   {
-    for (int i; i < queueFamilyProperties().size(); i++) {
+    for (int i = 0; i < queueFamilyProperties().size(); i++) {
       VkBool32 presentSupport = false;
       vkGetPhysicalDeviceSurfaceSupportKHR(_device, i, surface, &presentSupport);
       if (presentSupport) {
         return true;
       }
-      return false;
     }
+    return false;
   }
 
   bool supportsExtensions(const std::vector<const char *> extensions)

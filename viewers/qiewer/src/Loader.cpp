@@ -1,7 +1,5 @@
-#include <future>
-
 #include "loader.h"
-#include "vertex.h"
+#include "Vertex.h"
 
 #include <fstream>
 #include <sstream>
@@ -108,11 +106,16 @@ Mesh *Loader::load_stl(std::istream &input)
 {
   const int HEADER_LEN(5);
   char header[HEADER_LEN + 1];
-  input.get(header, HEADER_LEN + 1);
+
+  input.seekg(0);
+  input.read(header, HEADER_LEN + 1);
 
   if (std::string(header, HEADER_LEN) == "solid")
   {
     std::string line;
+    
+    // Skip over rest of header line
+    input >> std::skipws >> line;
     input >> std::skipws >> line;
     
     if (line.find("facet") == 0 ||

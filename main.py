@@ -61,7 +61,7 @@ def send(stl_ascii):
   import socket
 
   s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  s.connect(("172.29.32.1", 4242))
+  s.connect(("172.18.192.1", 4242))
   s.send(stl_ascii.encode())
 
 m = Mesh()

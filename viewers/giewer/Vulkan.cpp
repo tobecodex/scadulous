@@ -78,13 +78,20 @@ bool Vulkan::checkValidationLayers()
 
 bool Vulkan::isDeviceSuitable(VulkanPhysicalDevice &device)
 {
+  bool swapChainOK = false;
+  bool presentationOK = false;
+  bool queueFamiliesOK = false;
   bool extensionsOK = device.supportsExtensions(_deviceExtensions);
-  
+   
   if (extensionsOK) {
     VulkanPhysicalDevice::SwapChainProperties swapChain = device.swapChainProperties(_surface);
+    swapChainOK = (!swapChain._formats.empty() && !swapChain._presentModes.empty());
   }
 
-  return extensionsOK;
+  presentationOK = device.hasPresentationSupport(_surface);
+  queueFamiliesOK = device.hasQueueFamilySupport(VK_QUEUE_GRAPHICS_BIT);
+  
+  return extensionsOK && swapChainOK && queueFamiliesOK && presentationOK;
 }
 
 VkPhysicalDevice Vulkan::selectPhysicalDevice()

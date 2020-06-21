@@ -69,6 +69,8 @@ OpenGLWindow::OpenGLWindow(QWidget *parent)
     *current++ = 0;
     *current++ = z;
   }
+
+  m_dirtyMesh = false;
 }
 
 OpenGLWindow::~OpenGLWindow()
@@ -122,18 +124,15 @@ void OpenGLWindow::initializeGL()
   m_vertexArrayObject.bind();
 
   m_gridBuffer.create();
+  m_gridBuffer.bind();
   checkDebugLog();
   m_gridBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
   checkDebugLog();
-  m_gridBuffer.bind();
-  checkDebugLog();
   m_gridBuffer.allocate(m_grid, 60 * sizeof(float));
   checkDebugLog();
-
+  
   m_currentShader->enableAttributeArray("pos");
   m_currentShader->setAttributeBuffer("pos", GL_FLOAT, 0, 3);
-
-  m_vertexArrayObject.release();
 }
 
 void OpenGLWindow::paintGL()
@@ -148,17 +147,24 @@ void OpenGLWindow::paintGL()
   m_currentShader->setUniformValue(m_cameraLoc, m_camera.matrix());
   checkDebugLog();
 
-  if (m_mesh) {
-    glVertexAttribPointer(m_posLoc, 3, GL_FLOAT, GL_FALSE, 0, &m_mesh->vertices[0]);
+  m_vertexArrayObject.bind();
 
-    glEnableVertexAttribArray(m_posLoc);
-    glDrawArrays(GL_POINTS, 0, (int)m_mesh->vertices.size() / 3);
-    glDisableVertexAttribArray(m_posLoc);
+  //m_gridBuffer.bind();
+  //glDrawArrays(GL_LINES, 0, 20);
+
+  if (m_dirtyMesh && m_mesh) {
+    m_meshBuffer.create();
+    m_meshBuffer.bind();
+    m_meshBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    m_meshBuffer.allocate(&m_mesh->vertices[0], (int)m_mesh->vertices.size());
+    m_dirtyMesh = false;
   }
 
-  m_vertexArrayObject.bind(); 
-  glDrawArrays(GL_LINES, 0, 20);
-  checkDebugLog();
+  if (m_mesh) {
+    m_meshBuffer.bind();
+    glDrawArrays(GL_POINTS, 0, m_meshBuffer.size() / 3);
+  }
+
   m_vertexArrayObject.release();
   m_currentShader->release();
 
@@ -177,7 +183,7 @@ void OpenGLWindow::setMesh(Mesh *m)
   }
 
   m_mesh = m;
-  //QMetaObject::invokeMethod(this, [this]{ this->requestUpdate(); });
+  m_dirtyMesh = true;
 }
 
 static void cube() {
