@@ -18,13 +18,12 @@ public:
   };
 
 private:
+  VkPhysicalDevice _device;
   std::vector<VkExtensionProperties> *_extensionProperties;
   std::vector<VkQueueFamilyProperties> *_queueFamilyProperties;
   std::map<VkSurfaceKHR, SwapChainProperties> _swapChainProperties;
 
 public:
-  VkPhysicalDevice _device;
-  
   VulkanPhysicalDevice(VkPhysicalDevice device) 
   : _device(device), _queueFamilyProperties(nullptr), _extensionProperties(nullptr)
   {
@@ -37,6 +36,8 @@ public:
     if (_extensionProperties)
       delete _extensionProperties;
   }
+
+  VkPhysicalDevice device() const { return _device; }
 
   const std::vector<VkExtensionProperties> &extensionProperties()
   {
@@ -97,6 +98,17 @@ public:
     return false;
   }
 
+  std::vector<uint32_t> getQueueFamilies(VkFlags flags)
+  {
+    std::vector<uint32_t> queueIndices;
+    for (uint32_t i = 0; i < queueFamilyProperties().size(); i++) {
+      if (queueFamilyProperties()[i].queueFlags & flags) {
+        queueIndices.push_back(i);
+      }
+    }
+    return queueIndices;
+  }
+
   bool hasPresentationSupport(VkSurfaceKHR surface)
   {
     for (int i = 0; i < queueFamilyProperties().size(); i++) {
@@ -107,6 +119,19 @@ public:
       }
     }
     return false;
+  }
+
+  std::vector<uint32_t> getPresentationQueues(VkSurfaceKHR surface)
+  {
+    std::vector<uint32_t> queueIndices;
+    for (int i = 0; i < queueFamilyProperties().size(); i++) {
+      VkBool32 presentSupport = false;
+      vkGetPhysicalDeviceSurfaceSupportKHR(_device, i, surface, &presentSupport);
+      if (presentSupport) {
+        queueIndices.push_back(i);
+      }
+    }
+    return queueIndices;
   }
 
   bool supportsExtensions(const std::vector<const char *> extensions)
@@ -124,22 +149,32 @@ class Vulkan
 private:
 
   VkInstance _instance;
-  std::vector<const char *> _requiredExtensions;
+  
   const std::vector<const char *> _validationLayers;
 
-  VkDevice _logicalDevice;
-  VkPhysicalDevice _physicalDevice = VK_NULL_HANDLE;
+  std::vector<const char *> _requiredExtensions;
   std::vector<const char *> _deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
-  std::optional<uint32_t> _graphicsFamily;
-  std::optional<uint32_t> _presentFamily;
+  VkDevice _logicalDevice;
+
+  VulkanPhysicalDevice *_physicalDevice = nullptr;
+
   VkQueue _graphicsQueue;
-  VkQueue _presentQueue;
-  
+  VkQueue _presentationQueue;
+
+  VkSwapchainKHR _swapChain;
+  VkExtent2D _swapChainExtent; 
+  VkFormat _swapChainImageFormat;
+  std::vector<VkImage> _swapChainImages;
+  std::vector<VkImageView> _swapChainImageViews;
+
+  std::optional<uint32_t> _graphicsFamily;
+  std::optional<uint32_t> _presentationFamily;
+
   VkSurfaceKHR _surface;
 
   void createInstance();
-  VkPhysicalDevice selectPhysicalDevice();
+  VulkanPhysicalDevice *selectPhysicalDevice();
   
   bool checkValidationLayers();
   void detectQueueFamilies();
@@ -147,6 +182,12 @@ private:
 
   bool isDeviceSuitable(VulkanPhysicalDevice &device);
 
+  void createSwapChain();
+  void createImageViews();
+  VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
+  VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
+  VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
+  
 public:
 
   Vulkan(
