@@ -167,6 +167,14 @@ private:
   VkFormat _swapChainImageFormat;
   std::vector<VkImage> _swapChainImages;
   std::vector<VkImageView> _swapChainImageViews;
+  std::vector<VkFramebuffer> _swapChainFramebuffers;
+
+  VkRenderPass _renderPass;
+  VkPipeline _graphicsPipeline;
+  VkPipelineLayout _pipelineLayout;
+
+  VkCommandPool _commandPool;
+  std::vector<VkCommandBuffer> _commandBuffers;
 
   std::optional<uint32_t> _graphicsFamily;
   std::optional<uint32_t> _presentationFamily;
@@ -188,7 +196,16 @@ private:
   VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
   VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
 
+  void createRenderPass();
   void createGraphicsPipeline();
+  
+  static std::vector<char> loadShader(const std::string& filename);
+  VkShaderModule createShaderModule(const std::vector<char>& shader); 
+  
+  void createFrameBuffers();
+
+  void createCommandPool();
+  void createCommandBuffers();
 
 public:
 
