@@ -40,6 +40,7 @@ Vulkan::Vulkan(
   createLogicalDevice();
   createSwapChain();
   createImageViews();
+  createGraphicsPipeline();
 }
 
 Vulkan::~Vulkan()
@@ -303,4 +304,9 @@ void Vulkan::createImageViews()
       throw std::runtime_error("failed to create image views!");
     }
   }
+}
+
+void Vulkan::createGraphicsPipeline()
+{
+
 }
