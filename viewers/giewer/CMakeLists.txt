@@ -4,6 +4,10 @@ project(giewer VERSION 0.1.0)
 include(CTest)
 enable_testing()
 
+set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_MULTITHREAD ON)
+find_package(Boost 1.72 REQUIRED)
+
 set(VULKAN "C:\\VulkanSDK\\1.2.141.2")
 set(GLSLC "${VULKAN}\\Bin\\glslc.exe")
 set(GLFW "${CMAKE_SOURCE_DIR}/glfw-3.3.2")
@@ -22,14 +26,28 @@ set(GLFW_BUILD_TESTS OFF)
 set(GLFW_BUILD_EXAMPLES OFF) 
 add_subdirectory(${GLFW})
 
-add_executable(giewer main.cpp Vulkan.cpp ${SHADER_SPV})
+add_definitions(-DWIN32_LEAN_AND_MEAN -D_WIN32_WINDOWS -DBOOST_ASIO_NO_DEPRECATED)
 
-target_include_directories(giewer PUBLIC "${GLFW}/include")
-target_include_directories(giewer PUBLIC "${VULKAN}/Include")
-target_include_directories(giewer PUBLIC "${CMAKE_SOURCE_DIR}")
+set(sources
+  Vulkan.cpp
+  main.cpp
+  Mesh.cpp
+  SocketServer.cpp
+)
 
-target_link_libraries(giewer glfw ${GLFW_LIBRARIES})
-target_link_libraries(giewer "${VULKAN}/Lib/Vulkan-1.lib")
+add_executable(${CMAKE_PROJECT_NAME} ${sources} ${SHADER_SPV})
+
+target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ${GLFW}/include)
+target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ${VULKAN}/Include)
+target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ${Boost_INCLUDE_DIRS})
+target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR})
+
+target_link_libraries(${CMAKE_PROJECT_NAME} glfw ${GLFW_LIBRARIES})
+target_link_directories(${CMAKE_PROJECT_NAME} PUBLIC ${Boost_LIBRARY_DIRS})
+
+target_link_libraries(${CMAKE_PROJECT_NAME} ${Boost_LIBRARIES})
+target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(${CMAKE_PROJECT_NAME} ${VULKAN}/Lib/Vulkan-1.lib)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
 
