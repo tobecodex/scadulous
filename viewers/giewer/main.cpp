@@ -53,9 +53,10 @@ private:
 
     void mainLoop() 
     {
-        while (!glfwWindowShouldClose(_window)) {
-            glfwPollEvents();
-        }
+      while (!glfwWindowShouldClose(_window)) {
+        glfwPollEvents();
+        _vulkan->drawFrame();
+      }
     }
 
     void cleanup() 

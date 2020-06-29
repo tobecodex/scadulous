@@ -207,6 +207,11 @@ private:
   void createCommandPool();
   void createCommandBuffers();
 
+  void createSemaphores();
+  VkSemaphore _imageAvailableSemaphore;
+  VkSemaphore _renderFinishedSemaphore;
+
+  
 public:
 
   Vulkan(
@@ -219,5 +224,7 @@ public:
 
   VkSurfaceKHR &surface () { return _surface; } 
   const VkInstance &instance() const { return _instance; }
+
+  void drawFrame();
 };
 
