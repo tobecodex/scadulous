@@ -61,7 +61,6 @@ private:
     }
   }
 
-
 public:
 
   ~VulkanApp() 

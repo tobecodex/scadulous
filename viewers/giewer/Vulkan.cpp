@@ -12,7 +12,7 @@ Vulkan::Vulkan(
   void (*createSurfaceFn)(const VkInstance &, VkSurfaceKHR *, void *),
   void *createSurfaceFnUserData,
   const std::vector<const char *> &validationLayers
-) : _requiredExtensions(extensions), _validationLayers(validationLayers)
+) : _requiredExtensions(extensions), _validationLayers(validationLayers), _vertexBuffer(nullptr)
 {
   createInstance();
   createSurfaceFn(_instance, &_surface, createSurfaceFnUserData);
@@ -46,7 +46,6 @@ Vulkan::Vulkan(
   createGraphicsPipeline();
   createFrameBuffers();
   createCommandPool();
-  createCommandBuffers();
   createSemaphores();
 }
 
@@ -351,10 +350,10 @@ void Vulkan::createGraphicsPipeline()
 
   VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
   vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  vertexInputInfo.vertexBindingDescriptionCount = 0;
-  vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
-  vertexInputInfo.vertexAttributeDescriptionCount = 0;
-  vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+  vertexInputInfo.vertexBindingDescriptionCount = 1;
+  vertexInputInfo.pVertexBindingDescriptions = &Mesh::getVertexBindingDescription();
+  vertexInputInfo.vertexAttributeDescriptionCount = 1;
+  vertexInputInfo.pVertexAttributeDescriptions = &Mesh::getVertexAttributeDescription();
 
   VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
   inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -592,6 +591,7 @@ void Vulkan::createCommandBuffers()
   }
 
   for (size_t i = 0; i < _commandBuffers.size(); i++) {
+    
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = 0; // Optional
@@ -614,7 +614,14 @@ void Vulkan::createCommandBuffers()
 
     vkCmdBeginRenderPass(_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline);
-    vkCmdDraw(_commandBuffers[i], 3, 1, 0, 0);
+
+    if (_vertexBuffer) {
+      VkBuffer vertexBuffers[] = { _vertexBuffer };
+      VkDeviceSize offsets[] = {0};
+      vkCmdBindVertexBuffers(_commandBuffers[i], 0, 1, vertexBuffers, offsets);
+      vkCmdDraw(_commandBuffers[i], 3, 1, 0, 0);
+    }
+
     vkCmdEndRenderPass(_commandBuffers[i]);
     
     if (vkEndCommandBuffer(_commandBuffers[i]) != VK_SUCCESS) {
@@ -675,6 +682,42 @@ void Vulkan::drawFrame()
   vkQueueWaitIdle(_presentationQueue);
 }
 
+void Vulkan::createVertexBuffer(const std::vector<glm::vec3> &vertices)
+{
+  VkBufferCreateInfo bufferInfo{};
+  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  bufferInfo.size = sizeof(vertices[0]) * vertices.size();
+  bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+  if (vkCreateBuffer(_device, &bufferInfo, nullptr, &_vertexBuffer) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create vertex buffer!");
+  }
+
+  VkMemoryRequirements memRequirements;
+  vkGetBufferMemoryRequirements(_device, _vertexBuffer, &memRequirements);
+
+  VkMemoryAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  allocInfo.allocationSize = memRequirements.size;
+  allocInfo.memoryTypeIndex = _physicalDevice->findMemoryType(
+    memRequirements.memoryTypeBits, 
+    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+  );
+
+  if (vkAllocateMemory(_device, &allocInfo, nullptr, &_vertexBufferMemory) != VK_SUCCESS) {
+    throw std::runtime_error("failed to allocate vertex buffer memory!");
+  }
+
+  void* data;
+  vkBindBufferMemory(_device, _vertexBuffer, _vertexBufferMemory, 0);
+  vkMapMemory(_device, _vertexBufferMemory, 0, bufferInfo.size, 0, &data);
+  memcpy(data, vertices.data(), (size_t) bufferInfo.size);
+  vkUnmapMemory(_device, _vertexBufferMemory);
+}
+
 void Vulkan::addMesh(const Mesh &mesh)
 {
+  createVertexBuffer(mesh.vertices());
+  createCommandBuffers();
 }
