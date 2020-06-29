@@ -18,7 +18,7 @@ message(${SHADERS})
 set(SHADER_SPV, [])
 foreach(shader ${SHADERS})
   list(APPEND SHADER_SPV ${shader}.spv)
-  add_custom_command(OUTPUT ${shader}.spv COMMAND ${GLSLC} ${shader} -o ${shader}.spv )
+  add_custom_command(OUTPUT ${shader}.spv COMMAND ${GLSLC} ${shader} -o ${shader}.spv DEPENDS ${shader})
 endforeach()
 
 set(GLFW_BUILD_DOCS OFF) 
