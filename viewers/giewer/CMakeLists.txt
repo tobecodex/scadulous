@@ -8,7 +8,8 @@ set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREAD ON)
 find_package(Boost 1.72 REQUIRED)
 
-set(GLFW "${CMAKE_SOURCE_DIR}/glfw")
+set(GLM ${CMAKE_SOURCE_DIR}/glm)
+set(GLFW ${CMAKE_SOURCE_DIR}/glfw)
 set(VULKAN "C:\\VulkanSDK\\1.2.141.2")
 set(GLSLC "${VULKAN}\\Bin\\glslc.exe")
 set(SHADER_DIR "${CMAKE_SOURCE_DIR}/shaders")
@@ -39,6 +40,7 @@ set(sources
 
 add_executable(${CMAKE_PROJECT_NAME} ${sources} ${SHADER_SPV})
 
+target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ${GLM})
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ${GLFW}/include)
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ${VULKAN}/Include)
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ${Boost_INCLUDE_DIRS})
