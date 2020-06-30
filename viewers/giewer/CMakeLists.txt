@@ -32,7 +32,9 @@ set(sources
   Vulkan.cpp
   main.cpp
   Mesh.cpp
+  SwapChain.cpp
   SocketServer.cpp
+  CommandQueues.cpp
 )
 
 add_executable(${CMAKE_PROJECT_NAME} ${sources} ${SHADER_SPV})

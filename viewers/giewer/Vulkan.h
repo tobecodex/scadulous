@@ -8,70 +8,38 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <algorithm>
 
 #include "Mesh.h"
 #include "glm/glm.hpp"
-#include "VulkanPhysicalDevice.h"
+
+#include "SwapChain.h"
+#include "CommandQueues.h"
+#include "PhysicalDevice.h"
 
 class Vulkan
 {
 private:
-
-  VkInstance _instance;
   
-  const std::vector<const char *> _validationLayers;
-
-  std::vector<const char *> _requiredExtensions;
-  std::vector<const char *> _deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-
   VkDevice _device;
+  VkInstance _instance;
+  PhysicalDevice *_physicalDevice;
 
-  VulkanPhysicalDevice *_physicalDevice = nullptr;
-
-  VkQueue _graphicsQueue;
-  VkQueue _presentationQueue;
-
-  VkSwapchainKHR _swapChain;
-  VkExtent2D _swapChainExtent; 
-  VkFormat _swapChainImageFormat;
-  std::vector<VkImage> _swapChainImages;
-  std::vector<VkImageView> _swapChainImageViews;
-  std::vector<VkFramebuffer> _swapChainFramebuffers;
-
-  VkRenderPass _renderPass;
   VkPipeline _graphicsPipeline;
   VkPipelineLayout _pipelineLayout;
 
   VkCommandPool _commandPool;
   std::vector<VkCommandBuffer> _commandBuffers;
 
-  std::optional<uint32_t> _graphicsFamily;
-  std::optional<uint32_t> _presentationFamily;
-
   VkSurfaceKHR _surface;
-
-  void createInstance();
-  VulkanPhysicalDevice *selectPhysicalDevice();
   
-  bool checkValidationLayers();
-  void detectQueueFamilies();
-  void createLogicalDevice();
+  VkQueue _graphicsQueue;
+  VkQueue _presentationQueue;
 
-  bool isDeviceSuitable(VulkanPhysicalDevice &device);
-
-  void createSwapChain();
-  void createImageViews();
-  VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
-  VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
-  VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
-
-  void createRenderPass();
   void createGraphicsPipeline();
   
   static std::vector<char> loadShader(const std::string& filename);
   VkShaderModule createShaderModule(const std::vector<char>& shader); 
-
-  void createFrameBuffers();
 
   VkBuffer _vertexBuffer;
   VkDeviceMemory _vertexBufferMemory;
@@ -84,12 +52,37 @@ private:
   VkSemaphore _imageAvailableSemaphore;
   VkSemaphore _renderFinishedSemaphore;
 
-  
+  SwapChain *_swapChain;
+  CommandQueues *_queueFamilies;
+
+  static VkInstance createInstance(
+    const std::vector<const char *> &extensions, 
+    const std::vector<const char *> &validationLayers
+  );
+  static bool checkValidationLayers(const std::vector<const char *> &);
+
+  static PhysicalDevice *selectPhysicalDevice(
+    VkInstance instance, VkSurfaceKHR surface, 
+    const std::vector<const char *> &extensions
+  );
+
+  static bool isSuitableDevice(
+    PhysicalDevice *device, 
+    VkSurfaceKHR surface, 
+    const std::vector<const char *> &extensions
+  );
+
+  static VkDevice createLogicalDevice(
+    PhysicalDevice *physicalDevice,
+    const std::vector<const char *> validationLayers, 
+    const std::vector<uint32_t> &queueFamilies
+  );
+
 public:
 
   Vulkan(
     const std::vector<const char *> &extensions,
-    void (*createSurfaceFn)(const VkInstance &, VkSurfaceKHR *, void *),
+    VkSurfaceKHR (*createSurfaceFn)(const VkInstance &, void *),
     void *createSurfaceFnUserData,
     const std::vector<const char *> &validationLayers = std::vector<const char *>()
   );

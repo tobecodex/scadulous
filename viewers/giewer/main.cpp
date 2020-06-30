@@ -17,12 +17,14 @@ private:
   Vulkan *_vulkan;
   GLFWwindow *_window;
 
-  static void createSurface(const VkInstance &vkInstance, VkSurfaceKHR *surface, void *userData)
+  static VkSurfaceKHR createSurface(const VkInstance &vkInstance, void *userData)
   {
+    VkSurfaceKHR surface;
     VulkanApp *self = (VulkanApp *)(userData);
-    if (glfwCreateWindowSurface(vkInstance, self->_window, nullptr, surface) != VK_SUCCESS) {
+    if (glfwCreateWindowSurface(vkInstance, self->_window, nullptr, &surface) != VK_SUCCESS) {
       throw std::runtime_error("failed to create window surface!");
     }
+    return surface;
   }
 
   void initWindow() 
