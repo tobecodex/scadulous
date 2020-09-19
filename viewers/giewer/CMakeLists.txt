@@ -30,12 +30,16 @@ add_subdirectory(${GLFW})
 add_definitions(-DWIN32_LEAN_AND_MEAN -D_WIN32_WINDOWS -DBOOST_ASIO_NO_DEPRECATED)
 
 set(sources
-  Vulkan.cpp
   main.cpp
   Mesh.cpp
+  Vulkan.cpp
   SwapChain.cpp
   SocketServer.cpp
-  CommandQueues.cpp
+  Device.cpp
+  GraphicsPipeline.cpp
+  CommandPool.cpp
+  DescriptorPool.cpp
+  ResourceBuffer.cpp
 )
 
 add_executable(${CMAKE_PROJECT_NAME} ${sources} ${SHADER_SPV})

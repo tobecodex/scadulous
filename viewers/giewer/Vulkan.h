@@ -3,21 +3,18 @@
 
 #include <vulkan/vulkan.h>
 
-#include <set>
-#include <map>
-#include <string>
 #include <vector>
-#include <optional>
-#include <algorithm>
+#include <string>
 
 #include "Mesh.h"
 #include "glm/glm.hpp"
 
-#include "SwapChain.h"
-#include "CommandQueues.h"
-#include "PhysicalDevice.h"
+class Device;
+class UniformBuffer;
+class ResourceBuffer;
+class VertexBuffer;
 
-struct UniformBufferObject {
+struct Camera {
     glm::mat4 model;
     glm::mat4 view;
     glm::mat4 proj;
@@ -26,103 +23,57 @@ struct UniformBufferObject {
 class Vulkan
 {
 private:
-  
-  VkDevice _device;
+
+  static Vulkan *_currentContext;
+
   VkInstance _instance;
-  PhysicalDevice *_physicalDevice;
-
-  VkPipeline _graphicsPipeline;
-  VkDescriptorSetLayout _descriptorSetLayout;
-  VkPipelineLayout _pipelineLayout;
-
-  VkCommandPool _commandPool;
-  std::vector<VkCommandBuffer> _commandBuffers;
-
-  VkDescriptorPool _descriptorPool;
-  std::vector<VkDescriptorSet> _descriptorSets;
-
   VkSurfaceKHR _surface;
+  Device *_device = nullptr;
   
-  VkQueue _graphicsQueue;
-  VkQueue _presentationQueue;
-
-  void updateUniformBuffer(uint32_t);
-
-  void createGraphicsPipeline();
-  
-  void createDescriptorSetLayout();
-  static std::vector<char> loadShader(const std::string& filename);
-  VkShaderModule createShaderModule(const std::vector<char>& shader); 
-
-  void createBuffer(
-    VkDeviceSize size, 
-    VkBufferUsageFlags usage, 
-    VkMemoryPropertyFlags properties, 
-    VkBuffer& buffer, 
-    VkDeviceMemory& bufferMemory
-  ); 
-
-  VkBuffer _vertexBuffer;
-  VkDeviceMemory _vertexBufferMemory;
-  void createVertexBuffer(const std::vector<glm::vec3> &vertices);
-
-  std::vector<VkBuffer> _uniformBuffers;
-  std::vector<VkDeviceMemory> _uniformBuffersMemory;
-  void createUniformBuffers();
-
-  void createCommandPool();
-  void createCommandBuffers();
-
-  void createDescriptorPool();
-  void createDescriptorSets();
+  uint32_t _framesRendered = 0;
+  std::vector<const char *> _extensions;
+  std::vector<const char *> _validationLayers;
 
   void createSemaphores();
-  VkSemaphore _imageAvailableSemaphore;
-  VkSemaphore _renderFinishedSemaphore;
-
-  SwapChain *_swapChain;
-  CommandQueues *_queueFamilies;
+  VkSemaphore _imageAvailableSemaphore = nullptr, _renderFinishedSemaphore = nullptr;
 
   static VkInstance createInstance(
     const std::vector<const char *> &extensions, 
     const std::vector<const char *> &validationLayers
   );
-  static bool checkValidationLayers(const std::vector<const char *> &);
 
-  static PhysicalDevice *selectPhysicalDevice(
-    VkInstance instance, VkSurfaceKHR surface, 
-    const std::vector<const char *> &extensions
-  );
+  static bool checkValidationLayers(const std::vector<const char *> &validationLayers);
 
-  static bool isSuitableDevice(
-    PhysicalDevice *device, 
-    VkSurfaceKHR surface, 
-    const std::vector<const char *> &extensions
-  );
-
-  static VkDevice createLogicalDevice(
-    PhysicalDevice *physicalDevice,
-    const std::vector<const char *> validationLayers, 
-    const std::vector<uint32_t> &queueFamilies
-  );
-
-  uint32_t _framesRendered = 0;
+  UniformBuffer *_camera;
 
 public:
 
   Vulkan(
     const std::vector<const char *> &extensions,
-    VkSurfaceKHR (*createSurfaceFn)(const VkInstance &, void *),
-    void *createSurfaceFnUserData,
     const std::vector<const char *> &validationLayers = std::vector<const char *>()
   );
   ~Vulkan();
 
-  VkSurfaceKHR &surface () { return _surface; } 
-  const VkInstance &instance() const { return _instance; }
+  static Vulkan &context() { return *_currentContext; }
 
-  void addMesh(const Mesh &);
-  void drawFrame();
+  const std::vector<const char *> &extensions() const { return _extensions; }
+  const std::vector<const char *> &validationLayers() const { return _validationLayers; }
+
+  operator Device() const;
+  operator VkDevice() const;
+  operator VkPhysicalDevice() const;
+
+  operator VkInstance() const; 
+  operator VkSurfaceKHR() const;
+
+  void surface(const VkSurfaceKHR &);
+
+  void draw();
+
+  VertexBuffer *createVertexBuffer(const std::vector<glm::vec3> &vertices);
+
+  void addVertexShader(const std::string &path);
+  void addFragmentShader(const std::string &path);
 };
 
 #endif

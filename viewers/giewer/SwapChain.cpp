@@ -2,22 +2,24 @@
 
 #include <algorithm>
 
-SwapChain::SwapChain(PhysicalDevice &physicalDevice, VkDevice &device, VkSurfaceKHR surface) : _device(device)
+#include "Device.h"
+
+SwapChain::SwapChain(const Device &device, const VkSurfaceKHR &surface)
 {
-  const PhysicalDevice::SwapChainProperties &swapChain = physicalDevice.swapChainProperties(surface);
+  const PhysicalDevice::SwapChainProperties &swapChainProperties = device.swapChainProperties();
 
-  VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(swapChain._formats);
-  VkPresentModeKHR presentMode = choosePresentMode(swapChain._presentModes);
-  VkExtent2D extent = chooseExtent(swapChain._capabilities);
+  VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(swapChainProperties._formats);
+  VkPresentModeKHR presentMode = choosePresentMode(swapChainProperties._presentModes);
+  VkExtent2D extent = chooseExtent(swapChainProperties._capabilities);
 
-  uint32_t imageCount = swapChain._capabilities.minImageCount;
-  if (swapChain._capabilities.maxImageCount > imageCount + 1) {
+  uint32_t imageCount = swapChainProperties._capabilities.minImageCount;
+  if (swapChainProperties._capabilities.maxImageCount > imageCount + 1) {
     imageCount += 1;
   }
 
   VkSwapchainCreateInfoKHR createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-  createInfo.surface = surface;
+  createInfo.surface = Vulkan::context();
 
   createInfo.minImageCount = imageCount;
   createInfo.imageFormat = surfaceFormat.format;
@@ -42,7 +44,7 @@ SwapChain::SwapChain(PhysicalDevice &physicalDevice, VkDevice &device, VkSurface
     createInfo.pQueueFamilyIndices = nullptr; // Optional
   }
 
-  createInfo.preTransform = swapChain._capabilities.currentTransform;
+  createInfo.preTransform = swapChainProperties._capabilities.currentTransform;
   createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
   createInfo.presentMode = presentMode;
@@ -50,31 +52,31 @@ SwapChain::SwapChain(PhysicalDevice &physicalDevice, VkDevice &device, VkSurface
 
   createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-  if (vkCreateSwapchainKHR(_device, &createInfo, nullptr, &_swapChain) != VK_SUCCESS) {
+  if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &_swapChain) != VK_SUCCESS) {
     throw std::runtime_error("failed to create swap chain!");
   }
 
-  vkGetSwapchainImagesKHR(_device, _swapChain, &imageCount, nullptr);
+  vkGetSwapchainImagesKHR(device, _swapChain, &imageCount, nullptr);
   _images.resize(imageCount);
-  vkGetSwapchainImagesKHR(_device, _swapChain, &imageCount, _images.data());
+  vkGetSwapchainImagesKHR(device, _swapChain, &imageCount, _images.data());
 
   _extent = extent;
   _imageFormat = surfaceFormat.format;
   
-  createRenderPass();
-  createImageViews();
-  createFrameBuffers();
+  createRenderPass(device);
+  createImageViews(device);
+  createFrameBuffers(device);
 }
 
 SwapChain::~SwapChain()
 {
   for (auto frameBuffer : _frameBuffers) {
-    vkDestroyFramebuffer(_device, frameBuffer, nullptr);
+    vkDestroyFramebuffer(Vulkan::context(), frameBuffer, nullptr);
   }
   for (auto imageView : _imageViews) {
-    vkDestroyImageView(_device, imageView, nullptr);
+    vkDestroyImageView(Vulkan::context(), imageView, nullptr);
   }
-  vkDestroySwapchainKHR(_device, _swapChain, nullptr);
+  vkDestroySwapchainKHR(Vulkan::context(), _swapChain, nullptr);
 }
 
 VkSurfaceFormatKHR SwapChain::chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) 
@@ -112,7 +114,7 @@ VkExtent2D SwapChain::chooseExtent(const VkSurfaceCapabilitiesKHR &capabilities)
   }
 }
 
-void SwapChain::createImageViews()
+void SwapChain::createImageViews(const Device &device)
 {
   _imageViews.resize(_images.size());
 
@@ -136,13 +138,13 @@ void SwapChain::createImageViews()
     createInfo.subresourceRange.baseArrayLayer = 0;
     createInfo.subresourceRange.layerCount = 1;
 
-    if (vkCreateImageView(_device, &createInfo, nullptr, &_imageViews[i]) != VK_SUCCESS) {
+    if (vkCreateImageView(device, &createInfo, nullptr, &_imageViews[i]) != VK_SUCCESS) {
       throw std::runtime_error("failed to create image views!");
     }
   }
 }
 
-void SwapChain::createRenderPass()
+void SwapChain::createRenderPass(const Device &device)
 {
   VkAttachmentDescription colorAttachment{};
   colorAttachment.format = _imageFormat;
@@ -180,12 +182,12 @@ void SwapChain::createRenderPass()
   renderPassInfo.dependencyCount = 1;
   renderPassInfo.pDependencies = &dependency;
 
-  if (vkCreateRenderPass(_device, &renderPassInfo, nullptr, &_renderPass) != VK_SUCCESS) {
+  if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &_renderPass) != VK_SUCCESS) {
     throw std::runtime_error("failed to create render pass!");
   }
 }
 
-void SwapChain::createFrameBuffers()
+void SwapChain::createFrameBuffers(const Device &device)
 {
   _frameBuffers.resize(_imageViews.size());
 
@@ -204,7 +206,7 @@ void SwapChain::createFrameBuffers()
     framebufferInfo.height = _extent.height;
     framebufferInfo.layers = 1;
 
-    if (vkCreateFramebuffer(_device, &framebufferInfo, nullptr, &_frameBuffers[i]) != VK_SUCCESS) {
+    if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &_frameBuffers[i]) != VK_SUCCESS) {
       throw std::runtime_error("failed to create framebuffer!");
     }
   }

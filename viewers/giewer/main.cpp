@@ -17,16 +17,6 @@ private:
   Vulkan *_vulkan;
   GLFWwindow *_window;
 
-  static VkSurfaceKHR createSurface(const VkInstance &vkInstance, void *userData)
-  {
-    VkSurfaceKHR surface;
-    VulkanApp *self = (VulkanApp *)(userData);
-    if (glfwCreateWindowSurface(vkInstance, self->_window, nullptr, &surface) != VK_SUCCESS) {
-      throw std::runtime_error("failed to create window surface!");
-    }
-    return surface;
-  }
-
   void initWindow() 
   {
     glfwInit();
@@ -38,12 +28,12 @@ private:
     const char **ext = glfwGetRequiredInstanceExtensions(&extCount);
     std::vector<const char *> extensions(ext, ext + extCount);
 
-    _vulkan = new Vulkan(
-      extensions,
-      createSurface,
-      this,
-      std::vector<const char *>({ "VK_LAYER_KHRONOS_validation" })
-    );
+    VkSurfaceKHR surface;
+    _vulkan = new Vulkan(extensions, std::vector<const char *>({ "VK_LAYER_KHRONOS_validation" }));
+    if (glfwCreateWindowSurface(*_vulkan, _window, nullptr, &surface) != VK_SUCCESS) {
+      throw std::runtime_error("failed to create window surface!");
+    }
+    _vulkan->surface(surface);
 
     std::vector<glm::vec3> tri = {
       { 0.0, -0.5, 0.0 },
@@ -51,15 +41,14 @@ private:
       { -0.5, 0.5, 0.0 }
     };
 
-    Mesh mesh(tri);
-    _vulkan->addMesh(mesh);
+    _vulkan->createVertexBuffer(tri);
   }
 
   void mainLoop() 
   {
     while (!glfwWindowShouldClose(_window)) {
       glfwPollEvents();
-      _vulkan->drawFrame();
+      _vulkan->draw();
     }
   }
 
@@ -85,7 +74,6 @@ public:
   void addMesh(const Mesh &mesh)
   {
     if (_vulkan) {
-      _vulkan->addMesh(mesh);
     }
   }
 };
