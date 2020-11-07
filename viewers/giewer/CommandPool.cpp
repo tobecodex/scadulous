@@ -34,7 +34,7 @@ std::vector<CommandBuffer> *CommandPool::createCommandBuffers(Device &device, ui
   allocInfo.commandBufferCount = numBuffers;
 
   auto commandBuffers = new std::vector<CommandBuffer>();
-  commandBuffers->reserve(numBuffers);
+  commandBuffers->resize(numBuffers);
 
   if (vkAllocateCommandBuffers(device, &allocInfo, (VkCommandBuffer *)commandBuffers->data()) != VK_SUCCESS) {
     throw std::runtime_error("failed to allocate command buffers!");

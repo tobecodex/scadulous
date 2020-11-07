@@ -57,7 +57,7 @@ private:
 
   static bool checkValidationLayers(const std::vector<const char *> &validationLayers);
 
-  UniformBuffer *_camera;
+  std::vector<UniformBuffer> *_camera;
   std::vector<VertexBuffer *> _geometry;
   VertexBuffer *createVertexBuffer(const std::vector<glm::vec3> &vertices);
 

@@ -49,7 +49,7 @@ public:
   {
   }
 
-  void DescriptorSet::bindResourceBuffer(ResourceBuffer &buffer, VkDescriptorType &descriptorType) 
+  void DescriptorSet::bindResourceBuffer(ResourceBuffer &buffer, VkDescriptorType descriptorType) 
   {
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = buffer;

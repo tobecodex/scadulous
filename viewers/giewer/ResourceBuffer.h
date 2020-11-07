@@ -11,6 +11,7 @@ private:
   VkDeviceMemory _bufferMemory;
 
 public:
+  ResourceBuffer() {};
   ResourceBuffer(size_t size, VkBufferUsageFlagBits usageFlags, VkMemoryPropertyFlags memFlags);
 
   size_t size() const { return _size; }
@@ -28,6 +29,7 @@ public:
 class UniformBuffer : public ResourceBuffer
 {
 public:
+  UniformBuffer() {};
   UniformBuffer(size_t size, VkMemoryPropertyFlags memFlags)
   : ResourceBuffer(size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, memFlags) {}
 };

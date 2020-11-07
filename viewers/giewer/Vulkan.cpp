@@ -67,6 +67,15 @@ void Vulkan::createGraphicsPipeline()
   );
 
   _descriptorSets = _descriptorPool->createDescriptorSets(*_device, _swapChain->frameBuffers().size(), *_descriptorSetLayouts);
+
+  _camera = new std::vector<UniformBuffer>;
+  _camera->reserve(_swapChain->frameBuffers().size());
+
+  for (int i = 0; i < _camera->capacity(); i++) {
+    _camera->emplace_back(sizeof(Camera), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    (*_descriptorSets)[i].bindResourceBuffer((*_camera)[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+  }
+
   _graphicsPipeline = new GraphicsPipeline(*_device, *_swapChain, *_descriptorSetLayouts);
 
   createSemaphores();
@@ -198,8 +207,9 @@ void Vulkan::draw()
   submitInfo.pWaitSemaphores = waitSemaphores;
   submitInfo.pWaitDstStageMask = waitStages;
 
-  submitInfo.commandBufferCount = 0;//_device->commandBuffers().;
-  submitInfo.pCommandBuffers = nullptr;//_device->commandBuffers(imageIndex);
+  submitInfo.commandBufferCount = 1;//_commandBuffers->size();
+  std::vector<VkCommandBuffer> buffers{(*_commandBuffers)[imageIndex]};
+  submitInfo.pCommandBuffers = &buffers[0];
 
   VkSemaphore signalSemaphores[] = { _renderFinishedSemaphore };
   submitInfo.signalSemaphoreCount = 1;
@@ -230,10 +240,18 @@ void Vulkan::addMesh(const Mesh &mesh)
   VertexBuffer *vb = createVertexBuffer(mesh.vertices());
   _geometry.push_back(vb);
 
+  std::vector<VkBuffer> buffers{(VkBuffer)*vb};
   _commandBuffers = _commandPool->createCommandBuffers(*_device, (uint32_t)_swapChain->frameBuffers().size());
-  for (auto &buffer : *_commandBuffers) {
-    buffer.beginRecording(*_swapChain, *_graphicsPipeline, *_descriptorSets);
+  for (int i = 0; i < _commandBuffers->size(); i++) {
+    CommandBuffer &buffer = (*_commandBuffers)[i];
+    std::vector<VkDescriptorSet> descriptorSets{(*_descriptorSets)[i]};
+    buffer.beginRecording(i, *_swapChain, *_graphicsPipeline, *_descriptorSets);
     vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *_graphicsPipeline);
+    
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(buffer, 0, 1, buffers.data(), offsets);
+    vkCmdBindDescriptorSets(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline->pipelineLayout(), 0, 1, &descriptorSets[0], 0, nullptr);
+
     vkCmdDraw(buffer, mesh.vertices().size(), 1, 0, 0);
     buffer.endRecording();
   }

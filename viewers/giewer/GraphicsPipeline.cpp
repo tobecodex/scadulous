@@ -108,7 +108,7 @@ GraphicsPipeline::GraphicsPipeline(
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
-  pipelineLayoutInfo.pSetLayouts = &descriptorSetLayouts[0]._descriptorSetLayout; //(VkDescriptorSetLayout *)descriptorSetLayouts.data();
+  pipelineLayoutInfo.pSetLayouts = (VkDescriptorSetLayout *)descriptorSetLayouts.data();
   pipelineLayoutInfo.pushConstantRangeCount = 0;
   pipelineLayoutInfo.pPushConstantRanges = nullptr;
 

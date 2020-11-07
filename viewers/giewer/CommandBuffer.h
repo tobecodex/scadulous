@@ -10,10 +10,10 @@ class SwapChain;
 class CommandBuffer
 {
 private:
-  const VkCommandBuffer &_commandBuffer;
+  VkCommandBuffer _commandBuffer;
 
 public:
-  void beginRecording(SwapChain &, GraphicsPipeline &, std::vector<DescriptorSet> &);
+  void beginRecording(int, SwapChain &, GraphicsPipeline &, std::vector<DescriptorSet> &);
   void endRecording();
 
   operator VkCommandBuffer() { return _commandBuffer; }

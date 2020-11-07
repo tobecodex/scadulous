@@ -4,7 +4,7 @@
 
 #include <stdexcept>
 
-void CommandBuffer::beginRecording(SwapChain &swapChain, GraphicsPipeline &graphicsPipeline, std::vector<DescriptorSet> &descriptorSets)
+void CommandBuffer::beginRecording(int idx, SwapChain &swapChain, GraphicsPipeline &graphicsPipeline, std::vector<DescriptorSet> &descriptorSets)
 {
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -15,7 +15,7 @@ void CommandBuffer::beginRecording(SwapChain &swapChain, GraphicsPipeline &graph
     throw std::runtime_error("failed to begin recording command buffer!");
   }
 
-  VkFramebuffer frameBuffer = swapChain.frameBuffers().front();
+  VkFramebuffer frameBuffer = swapChain.frameBuffers()[idx];
 
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
