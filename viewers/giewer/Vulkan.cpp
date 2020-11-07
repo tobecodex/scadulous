@@ -17,6 +17,8 @@
 #include <chrono>
 
 #include "ResourceBuffer.h"
+#include "DescriptorSet.h"
+#include "DescriptorSetLayout.h"
 
 Vulkan *Vulkan::_currentContext = nullptr;
 
@@ -60,7 +62,7 @@ void Vulkan::createSwapChain()
 
 void Vulkan::createGraphicsPipeline()
 {
-  _descriptorPool = new DescriptorPool(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _swapChain->frameBuffers().size());
+  _descriptorPool = new DescriptorPool(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (uint32_t)_swapChain->frameBuffers().size());
   _descriptorSetLayouts = new std::vector<DescriptorSetLayout>();
   _descriptorSetLayouts->emplace_back(
     *_device, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT

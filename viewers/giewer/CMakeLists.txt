@@ -41,6 +41,8 @@ set(sources
   CommandBuffer.cpp
   DescriptorPool.cpp
   ResourceBuffer.cpp
+  DescriptorSet.cpp
+  DescriptorSetLayout.cpp
 )
 
 add_executable(${CMAKE_PROJECT_NAME} ${sources} ${SHADER_SPV})

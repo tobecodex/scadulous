@@ -6,7 +6,9 @@
 #include "Mesh.h"
 #include "SwapChain.h"
 #include "ShaderModule.h"
+#include "DescriptorSet.h"
 #include "DescriptorPool.h"
+#include "DescriptorSetLayout.h"
 
 GraphicsPipeline::GraphicsPipeline(
   const Device &device, const SwapChain &swapChain, std::vector<DescriptorSetLayout> &descriptorSetLayouts
