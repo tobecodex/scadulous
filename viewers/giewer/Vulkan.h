@@ -9,6 +9,9 @@
 #include "Mesh.h"
 #include "CommandBuffer.h"
 
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+
 class Device;
 class SwapChain;
 class VertexBuffer;
@@ -57,6 +60,7 @@ private:
 
   static bool checkValidationLayers(const std::vector<const char *> &validationLayers);
 
+  struct { glm::mat4 model, view, proj; } _cameraMatrix;
   std::vector<UniformBuffer> *_camera;
   std::vector<VertexBuffer *> _geometry;
   VertexBuffer *createVertexBuffer(const std::vector<glm::vec3> &vertices);
@@ -85,8 +89,6 @@ public:
   void surface(const VkSurfaceKHR &);
 
   void draw();
-
-  void createCamera();
   void addMesh(const Mesh &);
 
   void addVertexShader(const std::string &path);

@@ -72,7 +72,7 @@ void Vulkan::createGraphicsPipeline()
   _camera->reserve(_swapChain->frameBuffers().size());
 
   for (int i = 0; i < _camera->capacity(); i++) {
-    _camera->emplace_back(sizeof(Camera), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    _camera->emplace_back(sizeof(_cameraMatrix), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     (*_descriptorSets)[i].bindResourceBuffer((*_camera)[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
   }
 
@@ -150,13 +150,7 @@ void Vulkan::surface(const VkSurfaceKHR &surface)
   _device = new Device();
 
   createSwapChain();
-  createCamera();
   createGraphicsPipeline();
-}
-
-void Vulkan::createCamera() 
-{
-  VkDeviceSize bufferSize = sizeof(Camera);
 }
 
 VertexBuffer *Vulkan::createVertexBuffer(const std::vector<glm::vec3> &vertices)
@@ -189,6 +183,8 @@ void Vulkan::createSemaphores()
   }
 }
 
+
+
 void Vulkan::draw()
 {
   uint32_t imageIndex;
@@ -196,7 +192,20 @@ void Vulkan::draw()
     *_device, *_swapChain, UINT64_MAX, _imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex
   );
 
-  //updateUniformBuffer(imageIndex);
+  static auto startTime = std::chrono::high_resolution_clock::now();
+
+  auto currentTime = std::chrono::high_resolution_clock::now();
+  float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+  _cameraMatrix.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+  _cameraMatrix.view = glm::lookAt({1, 1, 1}, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+  _cameraMatrix.proj = glm::perspective(glm::radians(45.0f), _swapChain->extent().width / (float)_swapChain->extent().height, 0.1f, 10.0f);
+  _cameraMatrix.proj[1][1] *= -1;
+
+  void* data;
+  vkMapMemory(*_device, (*_camera)[imageIndex], 0, sizeof(_cameraMatrix), 0, &data);
+  memcpy(data, &_cameraMatrix, sizeof(_cameraMatrix));
+  vkUnmapMemory(*_device, (*_camera)[imageIndex]);
 
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
