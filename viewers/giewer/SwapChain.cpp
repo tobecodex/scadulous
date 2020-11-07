@@ -28,17 +28,16 @@ SwapChain::SwapChain(const Device &device, const VkSurfaceKHR &surface)
   createInfo.imageArrayLayers = 1;
   createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-  /* TODO:
-  if (physicalDevice.getQueueFamilies._graphicsFamily.value() != _queueFamilies._presentationFamily.value()) {
+  if (device.graphicsFamily() != device.presentationFamily()) {
     uint32_t queueFamilyIndices[] = { 
-      _queueFamilies._graphicsFamily.value(), 
-      _queueFamilies._presentationFamily.value() 
+      device.graphicsFamily(), 
+      device.presentationFamily() 
     };
     createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
     createInfo.queueFamilyIndexCount = 2;
     createInfo.pQueueFamilyIndices = queueFamilyIndices;
-  } else */
-  {
+  } 
+  else {
     createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     createInfo.queueFamilyIndexCount = 0; // Optional
     createInfo.pQueueFamilyIndices = nullptr; // Optional
@@ -70,6 +69,8 @@ SwapChain::SwapChain(const Device &device, const VkSurfaceKHR &surface)
 
 SwapChain::~SwapChain()
 {
+  vkDestroyRenderPass(Vulkan::context(), _renderPass, nullptr);
+
   for (auto frameBuffer : _frameBuffers) {
     vkDestroyFramebuffer(Vulkan::context(), frameBuffer, nullptr);
   }

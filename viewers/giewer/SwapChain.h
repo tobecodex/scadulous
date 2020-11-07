@@ -34,8 +34,8 @@ public:
   const VkExtent2D &extent() const { return _extent; }
   const VkFormat &imageFormat() const { return _imageFormat; }
   const VkRenderPass &renderPass() const { return _renderPass; }
-  const std::vector<VkImage> images() const { return _images; }
-  const std::vector<VkFramebuffer> frameBuffers() const { return _frameBuffers; }
+  const std::vector<VkImage> &images() const { return _images; }
+  const std::vector<VkFramebuffer> &frameBuffers() const { return _frameBuffers; }
 };
 
 #endif

@@ -17,29 +17,35 @@ private:
   VkDescriptorPool _descriptorPool;
 
 public:
-  DescriptorPool(VkDescriptorType type);
-  DescriptorSet createDescriptorSet(const DescriptorSetLayout &);
+  DescriptorPool(VkDescriptorType type, uint32_t maxSets);
+  ~DescriptorPool();
+
+  std::vector<DescriptorSet> *createDescriptorSets(Device &, uint32_t numSets, const std::vector<DescriptorSetLayout> &);
 };
 
 class DescriptorSetLayout
 {
-private:
+public:
   VkDescriptorSetLayout _descriptorSetLayout;
 
 public:
   DescriptorSetLayout(const Device &, uint32_t loc, VkDescriptorType type, VkShaderStageFlags shaderStages);
+  ~DescriptorSetLayout();
 
-  VkDescriptorSetLayout *layoutPtr() { return &_descriptorSetLayout; }
   operator VkDescriptorSetLayout() const { return _descriptorSetLayout; }
 };
 
 class DescriptorSet
 {
 private:
-  VkDescriptorSet _descriptorSet;
+  VkDescriptorSet _descriptorSet = nullptr;
 
 public:
-  DescriptorSet(VkDescriptorSet descriptorSet) : _descriptorSet(descriptorSet)
+  DescriptorSet()
+  {
+  }
+
+  DescriptorSet(VkDescriptorSet &descriptorSet) : _descriptorSet(descriptorSet)
   {
   }
 

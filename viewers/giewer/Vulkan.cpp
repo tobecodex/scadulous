@@ -1,6 +1,7 @@
 #include "Vulkan.h"
 
 #include "Device.h"
+#include "Camera.h"
 
 #include <set>
 #include <string>
@@ -30,16 +31,49 @@ Vulkan::Vulkan(
 
 Vulkan::~Vulkan()
 {
-  //vkDestroySemaphore(_device, _renderFinishedSemaphore, nullptr);
-  //vkDestroySemaphore(_device, _imageAvailableSemaphore, nullptr);
+  vkDestroySemaphore(*_device, _imageAvailableSemaphore, nullptr);
+  vkDestroySemaphore(*_device, _renderFinishedSemaphore, nullptr);
 
-  //vkDestroyDevice(_device, nullptr);
+  if (_descriptorPool) {
+    delete _descriptorPool;
+  }
+  if (_descriptorSetLayouts) {
+    delete _descriptorSetLayouts;
+  }
+  if (_commandPool) {
+    delete _commandPool;
+  }
+  if (_swapChain) {
+    delete _swapChain;
+  }
+  if (_device) {
+    delete _device;
+  }
   vkDestroySurfaceKHR(_instance, _surface, nullptr);
   vkDestroyInstance(_instance, nullptr);
 }
 
+void Vulkan::createSwapChain()
+{
+  _swapChain = new SwapChain(*_device, _surface);
+}
 
-Vulkan::operator Device() const { return *_device; }
+void Vulkan::createGraphicsPipeline()
+{
+  _descriptorPool = new DescriptorPool(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _swapChain->frameBuffers().size());
+  _descriptorSetLayouts = new std::vector<DescriptorSetLayout>();
+  _descriptorSetLayouts->emplace_back(
+    *_device, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT
+  );
+
+  _descriptorSets = _descriptorPool->createDescriptorSets(*_device, _swapChain->frameBuffers().size(), *_descriptorSetLayouts);
+  _graphicsPipeline = new GraphicsPipeline(*_device, *_swapChain, *_descriptorSetLayouts);
+
+  createSemaphores();
+  _commandPool = new CommandPool(*_device, _device->graphicsFamily());
+
+}
+
 Vulkan::operator VkDevice() const { return *_device; }
 Vulkan::operator VkPhysicalDevice() const { return *_device; }
 Vulkan::operator VkInstance() const { return _instance; }
@@ -105,18 +139,16 @@ void Vulkan::surface(const VkSurfaceKHR &surface)
 {
   _surface = surface;
   _device = new Device();
+
+  createSwapChain();
+  createCamera();
+  createGraphicsPipeline();
 }
 
-/*void Vulkan::createCamera() 
+void Vulkan::createCamera() 
 {
   VkDeviceSize bufferSize = sizeof(Camera);
-
-  _camera = new ResourceBuffer(
-    sizeof(Camera), 
-    VK_BUFFER_UNIFORM_BUFFER_BIT, 
-    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-  );
-}*/
+}
 
 VertexBuffer *Vulkan::createVertexBuffer(const std::vector<glm::vec3> &vertices)
 {
@@ -137,15 +169,72 @@ VertexBuffer *Vulkan::createVertexBuffer(const std::vector<glm::vec3> &vertices)
   return buffer;
 }
 
-void Vulkan::draw()
+void Vulkan::createSemaphores()
 {
-  _device->draw();
+  VkSemaphoreCreateInfo semaphoreInfo{};
+  semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+  if (vkCreateSemaphore(*_device, &semaphoreInfo, nullptr, &_imageAvailableSemaphore) != VK_SUCCESS ||
+      vkCreateSemaphore(*_device, &semaphoreInfo, nullptr, &_renderFinishedSemaphore) != VK_SUCCESS) {
+    throw std::runtime_error("failed to create semaphores!");
+  }
 }
 
-/*
+void Vulkan::draw()
+{
+  uint32_t imageIndex;
+  vkAcquireNextImageKHR(
+    *_device, *_swapChain, UINT64_MAX, _imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex
+  );
+
+  //updateUniformBuffer(imageIndex);
+
+  VkSubmitInfo submitInfo{};
+  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+  VkSemaphore waitSemaphores[] = { _imageAvailableSemaphore };
+  VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+  submitInfo.waitSemaphoreCount = 1;
+  submitInfo.pWaitSemaphores = waitSemaphores;
+  submitInfo.pWaitDstStageMask = waitStages;
+
+  submitInfo.commandBufferCount = 0;//_device->commandBuffers().;
+  submitInfo.pCommandBuffers = nullptr;//_device->commandBuffers(imageIndex);
+
+  VkSemaphore signalSemaphores[] = { _renderFinishedSemaphore };
+  submitInfo.signalSemaphoreCount = 1;
+  submitInfo.pSignalSemaphores = signalSemaphores;
+
+  if (vkQueueSubmit(_device->graphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+    throw std::runtime_error("failed to submit draw command buffer!");
+  }
+
+  VkPresentInfoKHR presentInfo{};
+  presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+  presentInfo.waitSemaphoreCount = 1;
+  presentInfo.pWaitSemaphores = signalSemaphores;
+
+  VkSwapchainKHR swapChains[] = { *_swapChain };
+  presentInfo.swapchainCount = 1;
+  presentInfo.pSwapchains = swapChains;
+  presentInfo.pImageIndices = &imageIndex;
+  presentInfo.pResults = nullptr; // Optional
+
+  vkQueuePresentKHR(_device->presentationQueue(), &presentInfo);
+  vkQueueWaitIdle(_device->presentationQueue());
+}
+
 void Vulkan::addMesh(const Mesh &mesh)
 {
-  createVertexBuffer(mesh.vertices());
-  createCommandBuffers();
-}*/
+  VertexBuffer *vb = createVertexBuffer(mesh.vertices());
+  _geometry.push_back(vb);
 
+  _commandBuffers = _commandPool->createCommandBuffers(*_device, (uint32_t)_swapChain->frameBuffers().size());
+  for (auto &buffer : *_commandBuffers) {
+    buffer.beginRecording(*_swapChain, *_graphicsPipeline, *_descriptorSets);
+    vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *_graphicsPipeline);
+    vkCmdDraw(buffer, mesh.vertices().size(), 1, 0, 0);
+    buffer.endRecording();
+  }
+}

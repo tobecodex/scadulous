@@ -12,12 +12,9 @@ class GraphicsPipeline
 private:
   VkPipeline _graphicsPipeline = nullptr;
   VkPipelineLayout _pipelineLayout = nullptr;
-  DescriptorSetLayout *_descriptorSetLayout = nullptr;
-
-  void createDescriptorSetLayout(const Device &);
 
 public:
-  GraphicsPipeline(const Device &, const SwapChain &);
+  GraphicsPipeline(const Device &, const SwapChain &, std::vector<DescriptorSetLayout> &descriptorSetLayouts);
   ~GraphicsPipeline();
 
   operator VkPipeline() const { return _graphicsPipeline; }

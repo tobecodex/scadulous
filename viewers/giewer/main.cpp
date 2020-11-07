@@ -35,13 +35,19 @@ private:
     }
     _vulkan->surface(surface);
 
+    createGeometry();   
+  }
+
+  void createGeometry()
+  {
     std::vector<glm::vec3> tri = {
       { 0.0, -0.5, 0.0 },
       { 0.5,  0.5, 0.0 },
       { -0.5, 0.5, 0.0 }
     };
 
-    _vulkan->createVertexBuffer(tri);
+    Mesh mesh(tri);
+    _vulkan->addMesh(mesh);
   }
 
   void mainLoop() 

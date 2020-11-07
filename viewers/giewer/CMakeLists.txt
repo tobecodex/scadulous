@@ -38,6 +38,7 @@ set(sources
   Device.cpp
   GraphicsPipeline.cpp
   CommandPool.cpp
+  CommandBuffer.cpp
   DescriptorPool.cpp
   ResourceBuffer.cpp
 )

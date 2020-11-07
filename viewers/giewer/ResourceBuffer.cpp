@@ -1,4 +1,5 @@
 #include "ResourceBuffer.h"
+#include "Device.h"
 
 #include <stdexcept>
 

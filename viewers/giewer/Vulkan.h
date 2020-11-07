@@ -7,18 +7,20 @@
 #include <string>
 
 #include "Mesh.h"
-#include "glm/glm.hpp"
+#include "CommandBuffer.h"
 
 class Device;
+class SwapChain;
+class VertexBuffer;
+class CommandBuffer;
 class UniformBuffer;
 class ResourceBuffer;
-class VertexBuffer;
-
-struct Camera {
-    glm::mat4 model;
-    glm::mat4 view;
-    glm::mat4 proj;
-};
+class GraphicsPipeline;
+class CommandPool;
+class CommandBuffer;
+class DescriptorSet;
+class DescriptorPool;
+class DescriptorSetLayout;
 
 class Vulkan
 {
@@ -30,21 +32,37 @@ private:
   VkSurfaceKHR _surface;
   Device *_device = nullptr;
   
+  void createSemaphores();
+  VkSemaphore _imageAvailableSemaphore;
+  VkSemaphore _renderFinishedSemaphore;
+
   uint32_t _framesRendered = 0;
   std::vector<const char *> _extensions;
   std::vector<const char *> _validationLayers;
-
-  void createSemaphores();
-  VkSemaphore _imageAvailableSemaphore = nullptr, _renderFinishedSemaphore = nullptr;
 
   static VkInstance createInstance(
     const std::vector<const char *> &extensions, 
     const std::vector<const char *> &validationLayers
   );
 
+  void createSwapChain();
+  SwapChain *_swapChain = nullptr;
+
+  GraphicsPipeline *_graphicsPipeline  = nullptr;
+  void createGraphicsPipeline();
+
+  DescriptorPool *_descriptorPool = nullptr;
+  std::vector<DescriptorSet> *_descriptorSets = nullptr;
+  std::vector<DescriptorSetLayout> *_descriptorSetLayouts = nullptr;
+
   static bool checkValidationLayers(const std::vector<const char *> &validationLayers);
 
   UniformBuffer *_camera;
+  std::vector<VertexBuffer *> _geometry;
+  VertexBuffer *createVertexBuffer(const std::vector<glm::vec3> &vertices);
+
+  CommandPool *_commandPool = nullptr;
+  std::vector<CommandBuffer> *_commandBuffers = nullptr;
 
 public:
 
@@ -59,18 +77,17 @@ public:
   const std::vector<const char *> &extensions() const { return _extensions; }
   const std::vector<const char *> &validationLayers() const { return _validationLayers; }
 
-  operator Device() const;
   operator VkDevice() const;
-  operator VkPhysicalDevice() const;
-
   operator VkInstance() const; 
   operator VkSurfaceKHR() const;
-
+  operator VkPhysicalDevice() const;
+  
   void surface(const VkSurfaceKHR &);
 
   void draw();
 
-  VertexBuffer *createVertexBuffer(const std::vector<glm::vec3> &vertices);
+  void createCamera();
+  void addMesh(const Mesh &);
 
   void addVertexShader(const std::string &path);
   void addFragmentShader(const std::string &path);

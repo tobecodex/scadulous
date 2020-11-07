@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-DescriptorPool::DescriptorPool(VkDescriptorType type)
+DescriptorPool::DescriptorPool(VkDescriptorType type, uint32_t maxSets)
 {
   VkDescriptorPoolSize poolSize{};
   poolSize.type = type;
@@ -13,29 +13,34 @@ DescriptorPool::DescriptorPool(VkDescriptorType type)
   poolInfo.poolSizeCount = 1;
   poolInfo.pPoolSizes = &poolSize;
 
-  poolInfo.maxSets = static_cast<uint32_t>(1);
+  poolInfo.maxSets = maxSets;
 
   if (vkCreateDescriptorPool(Vulkan::context(), &poolInfo, nullptr, &_descriptorPool) != VK_SUCCESS) {
     throw std::runtime_error("failed to create descriptor pool!");
   }
 }
 
-DescriptorSet DescriptorPool::createDescriptorSet(const DescriptorSetLayout &layout)
+DescriptorPool::~DescriptorPool()
 {
-  std::vector<VkDescriptorSetLayout> layouts { layout };
+  vkDestroyDescriptorPool(Vulkan::context(), _descriptorPool, nullptr);
+}
+
+std::vector<DescriptorSet> *DescriptorPool::createDescriptorSets(Device &device, uint32_t numSets, const std::vector<DescriptorSetLayout> &layouts)
+{
+  std::vector<VkDescriptorSetLayout> _layouts(numSets, layouts.front());
 
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool = _descriptorPool;
-  allocInfo.descriptorSetCount = 1;
-  allocInfo.pSetLayouts = layouts.data();
+  allocInfo.descriptorSetCount = numSets;
+  allocInfo.pSetLayouts = _layouts.data();
 
-  VkDescriptorSet descriptorSet;
-  if (vkAllocateDescriptorSets(Vulkan::context(), &allocInfo, &descriptorSet) != VK_SUCCESS) {
+  auto descriptorSets = new std::vector<DescriptorSet>(numSets) ;
+  if (vkAllocateDescriptorSets(device, &allocInfo, (VkDescriptorSet *)descriptorSets->data()) != VK_SUCCESS) {
     throw std::runtime_error("failed to allocate descriptor sets!");
   }
 
-  return DescriptorSet(descriptorSet);
+  return descriptorSets;
 }
 
 // ##
@@ -58,3 +63,9 @@ DescriptorSetLayout::DescriptorSetLayout(const Device &device, uint32_t loc, VkD
     throw std::runtime_error("failed to create descriptor set layout!");
   }
 }
+
+DescriptorSetLayout::~DescriptorSetLayout()
+{
+  vkDestroyDescriptorSetLayout(Vulkan::context(), _descriptorSetLayout, nullptr);
+}
+

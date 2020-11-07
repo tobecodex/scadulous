@@ -6,18 +6,7 @@
 class SwapChain;
 class DescriptorSet;
 class GraphicsPipeline;
-
-class CommandBuffer
-{
-private:
-  const VkCommandBuffer &_commandBuffer;
-
-public:
-  CommandBuffer(const VkCommandBuffer &commandBuffer) : _commandBuffer(commandBuffer) {}
-  
-  void beginRecording(const GraphicsPipeline &, const DescriptorSet &, const SwapChain &, const VkFramebuffer &);
-  void endRecording();
-};
+class CommandBuffer;
 
 class CommandPool
 {
@@ -25,10 +14,10 @@ private:
   VkCommandPool _commandPool;
 
 public:
-  CommandPool(uint32_t queueFamily);
+  CommandPool(Device &, uint32_t queueFamily);
   ~CommandPool();
 
-  CommandBuffer createCommandBuffer();
+  std::vector<CommandBuffer> *createCommandBuffers(Device &, uint32_t numBuffers);
 };
 
 #endif

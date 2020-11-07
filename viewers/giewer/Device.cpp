@@ -16,7 +16,7 @@ Device::Device()
   }
   
   if (presentationFamilies.size() == 0) {
-    throw std::runtime_error("Could not find a graphics queue");
+    throw std::runtime_error("Could not find a presentation queue");
   }
 
   // See if there are any graphics + presentation families
@@ -40,12 +40,13 @@ Device::Device()
   queueFamilies = { _graphicsFamily, _presentationFamily };
 
   createLogicalDevice(queueFamilies);
-  createSwapChain();
-  createGraphicsPipeline();
+  vkGetDeviceQueue(_device, _graphicsFamily, 0, &_graphicsQueue);
+  vkGetDeviceQueue(_device, _presentationFamily, 0, &_presentationQueue);
 }
 
 Device::~Device()
 {
+  vkDestroyDevice(_device, nullptr);
 }
 
 const PhysicalDevice::SwapChainProperties &Device::swapChainProperties() const
@@ -131,35 +132,14 @@ void Device::createLogicalDevice(const std::vector<uint32_t> &queueFamilies)
   }
 }
 
-void Device::createSwapChain()
-{
-  _swapChain = new SwapChain(*this, Vulkan::context());
-}
-
-void Device::createGraphicsPipeline()
-{
-  _graphicsPipeline = new GraphicsPipeline(*this, *_swapChain);
-}
-
-void Device::createSemaphores()
-{
-  VkSemaphoreCreateInfo semaphoreInfo{};
-  semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-  if (vkCreateSemaphore(_device, &semaphoreInfo, nullptr, &_imageAvailableSemaphore) != VK_SUCCESS ||
-      vkCreateSemaphore(_device, &semaphoreInfo, nullptr, &_renderFinishedSemaphore) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create semaphores!");
-  }
-}
-
-CommandBuffer Device::createCommandBuffer()
+/*CommandBuffer Device::createCommandBuffer()
 {
   if (!_commandPool) {
     _commandPool = new CommandPool(_presentationFamily);
   }
 
-  return _commandPool->createCommandBuffer();
-}
+  return *_commandPool->createCommandBuffer();
+}*/
 
 /*
 void Device::updateUniformBuffer(uint32_t currentImage)
@@ -181,49 +161,3 @@ void Device::updateUniformBuffer(uint32_t currentImage)
 
 }*/
 
-void Device::draw()
-{
-  uint32_t imageIndex;
-  vkAcquireNextImageKHR(
-    _device, *_swapChain, UINT64_MAX, _imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex
-  );
-
-  //updateUniformBuffer(imageIndex);
-
-  VkSubmitInfo submitInfo{};
-  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-  VkSemaphore waitSemaphores[] = { _imageAvailableSemaphore };
-  VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-  submitInfo.waitSemaphoreCount = 1;
-  submitInfo.pWaitSemaphores = waitSemaphores;
-  submitInfo.pWaitDstStageMask = waitStages;
-
-  submitInfo.commandBufferCount = 0;//_device->commandBuffers().;
-  submitInfo.pCommandBuffers = nullptr;//_device->commandBuffers(imageIndex);
-
-  VkSemaphore signalSemaphores[] = { _renderFinishedSemaphore };
-  submitInfo.signalSemaphoreCount = 1;
-  submitInfo.pSignalSemaphores = signalSemaphores;
-
-  if (vkQueueSubmit(_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
-    throw std::runtime_error("failed to submit draw command buffer!");
-  }
-
-  VkPresentInfoKHR presentInfo{};
-  presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
-  presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores = signalSemaphores;
-
-  VkSwapchainKHR swapChains[] = { *_swapChain };
-  presentInfo.swapchainCount = 1;
-  presentInfo.pSwapchains = swapChains;
-  presentInfo.pImageIndices = &imageIndex;
-  presentInfo.pResults = nullptr; // Optional
-
-  vkQueuePresentKHR(_presentationQueue, &presentInfo);
-  vkQueueWaitIdle(_presentationQueue);
-
- // _framesRendered++;
-}

@@ -8,10 +8,10 @@
 #include "ShaderModule.h"
 #include "DescriptorPool.h"
 
-GraphicsPipeline::GraphicsPipeline(const Device &device, const SwapChain &swapChain)
+GraphicsPipeline::GraphicsPipeline(
+  const Device &device, const SwapChain &swapChain, std::vector<DescriptorSetLayout> &descriptorSetLayouts
+)
 {
-  createDescriptorSetLayout(device);
-
   ShaderModule vertShader(device, "shaders/shader.vert.spv");
   ShaderModule fragShader(device, "shaders/shader.frag.spv");
 
@@ -107,8 +107,8 @@ GraphicsPipeline::GraphicsPipeline(const Device &device, const SwapChain &swapCh
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutInfo.setLayoutCount = 1;
-  pipelineLayoutInfo.pSetLayouts = _descriptorSetLayout->layoutPtr();
+  pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
+  pipelineLayoutInfo.pSetLayouts = &descriptorSetLayouts[0]._descriptorSetLayout; //(VkDescriptorSetLayout *)descriptorSetLayouts.data();
   pipelineLayoutInfo.pushConstantRangeCount = 0;
   pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
@@ -143,9 +143,6 @@ GraphicsPipeline::GraphicsPipeline(const Device &device, const SwapChain &swapCh
   }
 }
 
-void GraphicsPipeline::createDescriptorSetLayout(const Device &device)
+GraphicsPipeline::~GraphicsPipeline()
 {
-  _descriptorSetLayout = new DescriptorSetLayout(
-    device, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT
-  );
 }
