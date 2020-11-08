@@ -34,6 +34,7 @@ set(sources
   Mesh.cpp
   Vulkan.cpp
   Loader.cpp
+  Camera.cpp
   SwapChain.cpp
   SocketServer.cpp
   Device.cpp

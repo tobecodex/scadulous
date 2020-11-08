@@ -1,6 +1,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <glfw/glfw3.h>
 
+#include <map>
 #include <iostream>
 #include <cstdlib>
 
@@ -12,12 +13,14 @@
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
+
 class VulkanApp : public SocketClient
 {
 private:
   Vulkan *_vulkan;
   GLFWwindow *_window;
   SocketServer _socketServer;
+  static std::map<GLFWwindow *, VulkanApp *> _windowToApp;
 
   void initWindow() 
   {
@@ -25,6 +28,7 @@ private:
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     _window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+    _windowToApp[_window] = this;
 
     uint32_t extCount = 0;
     const char **ext = glfwGetRequiredInstanceExtensions(&extCount);
@@ -37,15 +41,16 @@ private:
     }
     _vulkan->setSurface(surface);
 
+    glfwSetKeyCallback(_window, handleKeyboardInput);
     createGeometry();   
   }
 
   void createGeometry()
   {
     std::vector<glm::vec3> tri = {
-      { 0.0, -0.5, 0.0 },
-      { 0.5,  0.5, 0.0 },
-      { -0.5, 0.5, 0.0 }
+      { 0.0, 0.5, 0.0 },
+      { 0.5, -0.5, 0.0 },
+      { -0.5, -0.5, 0.0 }
     };
 
     Mesh mesh(tri);
@@ -58,6 +63,61 @@ private:
       glfwPollEvents();
       _vulkan->draw();
     }
+  }
+
+  /*
+  static auto startTime = std::chrono::high_resolution_clock::now();
+
+  auto currentTime = std::chrono::high_resolution_clock::now();
+  float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+  _cameraMatrix.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+  _cameraMatrix.view = glm::lookAt({1, 1, 1}, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+  _cameraMatrix.proj = glm::perspective(glm::radians(45.0f), _swapChain->extent().width / (float)_swapChain->extent().height, 0.1f, 10.0f);
+  _cameraMatrix.proj[1][1] *= -1;
+  */
+
+  void onKeyboardInput(GLFWwindow* window, int key, int scancode, int action, int mods)
+  {
+    if (action == GLFW_PRESS || action == GLFW_REPEAT)
+    {
+      switch (key)
+      {
+        case GLFW_KEY_W : {
+          _vulkan->camera().forward();
+        }
+        break;
+
+        case GLFW_KEY_S : {
+          _vulkan->camera().backward();
+        }
+        break;
+
+        case GLFW_KEY_A : {
+          _vulkan->camera().left();
+        }
+        break;
+   
+        case GLFW_KEY_D : {
+          _vulkan->camera().right();
+        }
+        break;
+        
+        case GLFW_KEY_O : {
+        }
+        break;
+
+        case GLFW_KEY_SPACE : {
+          _vulkan->camera().lookAt(0,0,0);
+        }
+        break;
+      }
+    }
+  }
+
+  static void handleKeyboardInput(GLFWwindow* window, int key, int scancode, int action, int mods)
+  {
+    _windowToApp[window]->onKeyboardInput(window, key, scancode, action, mods);
   }
 
 public:
@@ -96,6 +156,8 @@ public:
   {
   }
 };
+
+std::map<GLFWwindow *, VulkanApp *> VulkanApp::_windowToApp;
 
 int main() 
 {

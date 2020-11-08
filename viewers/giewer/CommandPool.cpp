@@ -6,6 +6,7 @@
 #include "SwapChain.h"
 #include "DescriptorPool.h"
 #include "GraphicsPipeline.h"
+#include "CommandBuffer.h"
 
 CommandPool::CommandPool(Device &device, uint32_t queueFamily)
 {

@@ -4,6 +4,8 @@
 #include <vector>
 #include "Vulkan.h"
 
+class Device;
+
 class SwapChain
 {
 private:

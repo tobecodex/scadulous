@@ -7,8 +7,6 @@
 #include "PhysicalDevice.h"
 #include "GraphicsPipeline.h"
 
-#include "CommandPool.h"
-
 class Device
 {
 private:
@@ -20,10 +18,6 @@ private:
 
   uint32_t _presentationFamily = -1;
   VkQueue _presentationQueue = nullptr;
-
-  CommandPool *_commandPool = nullptr;
-  std::vector<CommandBuffer *> _commandBuffers;
-
 
   PhysicalDevice *selectPhysicalDevice(const std::vector<const char *> &extensions);
   bool isSuitableDevice(PhysicalDevice &, const std::vector<const char *> &extensions);
