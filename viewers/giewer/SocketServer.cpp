@@ -13,6 +13,13 @@ SocketServer::SocketServer(short port) :
 {
 }
 
+SocketServer::~SocketServer()
+{
+  if (_serverThread) {
+    delete _serverThread;
+  }
+}
+
 void SocketServer::start(SocketClient &client)
 {
   _client = &client;

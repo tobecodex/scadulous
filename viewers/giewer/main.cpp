@@ -1,21 +1,23 @@
 #define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+#include <glfw/glfw3.h>
 
 #include <iostream>
 #include <cstdlib>
 
 #include "Mesh.h"
 #include "Vulkan.h"
+#include "Loader.h"
 #include "SocketServer.h"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
-class VulkanApp
+class VulkanApp : public SocketClient
 {
 private:
   Vulkan *_vulkan;
   GLFWwindow *_window;
+  SocketServer _socketServer;
 
   void initWindow() 
   {
@@ -33,7 +35,7 @@ private:
     if (glfwCreateWindowSurface(*_vulkan, _window, nullptr, &surface) != VK_SUCCESS) {
       throw std::runtime_error("failed to create window surface!");
     }
-    _vulkan->surface(surface);
+    _vulkan->setSurface(surface);
 
     createGeometry();   
   }
@@ -74,45 +76,20 @@ public:
   void run() 
   {
       initWindow();
+      _socketServer.start(*this);
       mainLoop();
   }
 
-  void addMesh(const Mesh &mesh)
+  void onConnect(std::iostream &s)
   {
+    Loader loader;
+    std::string str(std::istreambuf_iterator<char>(s), {});
+    std::istringstream inp(str);
+    Mesh *m = loader.load_stl(inp);
     if (_vulkan) {
+      _vulkan->addMesh(*m);
     }
-  }
-};
-
-class GiewerApp : public SocketClient
-{
-private:
-  Mesh *_mesh;
-  VulkanApp *_vulkanApp;
-
-public:
-  GiewerApp()
-  {
-    _vulkanApp = new VulkanApp();
-  }
-
-  ~GiewerApp()
-  {
-    if (_vulkanApp) {
-      delete _vulkanApp;
-      _vulkanApp = nullptr;
-    }
-  }
-
-  void run()
-  {
-    if (_vulkanApp) {
-      _vulkanApp->run();
-    }
-  }
-
-  void onConnect(std::iostream &)
-  {
+    delete m;
   }
 
   void onClose(std::iostream &)
@@ -122,7 +99,7 @@ public:
 
 int main() 
 {
-  GiewerApp app;
+  VulkanApp app;
   
   try {
     app.run();

@@ -60,8 +60,9 @@ private:
 
   static bool checkValidationLayers(const std::vector<const char *> &validationLayers);
 
-  struct { glm::mat4 model, view, proj; } _cameraMatrix;
   std::vector<UniformBuffer> *_camera;
+  struct { glm::mat4 model, view, proj; } _cameraMatrix;
+
   std::vector<VertexBuffer *> _geometry;
   VertexBuffer *createVertexBuffer(const std::vector<glm::vec3> &vertices);
 
@@ -86,7 +87,7 @@ public:
   operator VkSurfaceKHR() const;
   operator VkPhysicalDevice() const;
   
-  void surface(const VkSurfaceKHR &);
+  void setSurface(const VkSurfaceKHR &);
 
   void draw();
   void addMesh(const Mesh &);

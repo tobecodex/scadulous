@@ -33,6 +33,7 @@ set(sources
   main.cpp
   Mesh.cpp
   Vulkan.cpp
+  Loader.cpp
   SwapChain.cpp
   SocketServer.cpp
   Device.cpp

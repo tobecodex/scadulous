@@ -18,14 +18,14 @@ class SocketServer
 {
 public:
   SocketServer(short port = 4242);
+  ~SocketServer();
 
   void start(SocketClient &);
-  void stop();
 
 protected:
   short _port;
   SocketClient *_client;
-  std::thread *_serverThread;
+  std::thread *_serverThread = nullptr;
   boost::asio::io_context _io_context;
   tcp::acceptor _acceptor;
 

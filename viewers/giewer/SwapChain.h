@@ -29,6 +29,8 @@ public:
   SwapChain(const Device &, const VkSurfaceKHR &);
   ~SwapChain();
 
+  uint32_t size() { return (uint32_t)_frameBuffers.size(); }
+
   operator VkSwapchainKHR() const { return _swapChain; }
 
   const VkExtent2D &extent() const { return _extent; }

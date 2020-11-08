@@ -62,16 +62,16 @@ void Vulkan::createSwapChain()
 
 void Vulkan::createGraphicsPipeline()
 {
-  _descriptorPool = new DescriptorPool(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (uint32_t)_swapChain->frameBuffers().size());
+  _descriptorPool = new DescriptorPool(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _swapChain->size());
   _descriptorSetLayouts = new std::vector<DescriptorSetLayout>();
   _descriptorSetLayouts->emplace_back(
     *_device, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT
   );
 
-  _descriptorSets = _descriptorPool->createDescriptorSets(*_device, _swapChain->frameBuffers().size(), *_descriptorSetLayouts);
+  _descriptorSets = _descriptorPool->createDescriptorSets(*_device, _swapChain->size(), *_descriptorSetLayouts);
 
   _camera = new std::vector<UniformBuffer>;
-  _camera->reserve(_swapChain->frameBuffers().size());
+  _camera->reserve(_swapChain->size());
 
   for (int i = 0; i < _camera->capacity(); i++) {
     _camera->emplace_back(sizeof(_cameraMatrix), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -146,7 +146,7 @@ VkInstance Vulkan::createInstance(
   return instance;
 }
 
-void Vulkan::surface(const VkSurfaceKHR &surface)
+void Vulkan::setSurface(const VkSurfaceKHR &surface)
 {
   _surface = surface;
   _device = new Device();
@@ -252,7 +252,7 @@ void Vulkan::addMesh(const Mesh &mesh)
   _geometry.push_back(vb);
 
   std::vector<VkBuffer> buffers{(VkBuffer)*vb};
-  _commandBuffers = _commandPool->createCommandBuffers(*_device, (uint32_t)_swapChain->frameBuffers().size());
+  _commandBuffers = _commandPool->createCommandBuffers(*_device, _swapChain->size());
   for (int i = 0; i < _commandBuffers->size(); i++) {
     CommandBuffer &buffer = (*_commandBuffers)[i];
     std::vector<VkDescriptorSet> descriptorSets{(*_descriptorSets)[i]};
@@ -263,7 +263,7 @@ void Vulkan::addMesh(const Mesh &mesh)
     vkCmdBindVertexBuffers(buffer, 0, 1, buffers.data(), offsets);
     vkCmdBindDescriptorSets(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline->pipelineLayout(), 0, 1, &descriptorSets[0], 0, nullptr);
 
-    vkCmdDraw(buffer, mesh.vertices().size(), 1, 0, 0);
+    vkCmdDraw(buffer, (uint32_t)mesh.vertices().size(), 1, 0, 0);
     buffer.endRecording();
   }
 }
