@@ -16,10 +16,19 @@ public:
   Camera(float width, float height);
   ~Camera();
 
-  void forward();
-  void backward();
-  void left();
-  void right();
+  void forward(float s);
+  void backward(float s);
+
+  void left(float s);
+  void right(float s);
+
+  void up(float s);
+  void down(float s);
+
+  void yaw(float theta);
+  void pitch(float theta);
+  void roll(float theta);
+
   void lookAt(float x, float y, float z);
 
   const ViewTransform &transform();

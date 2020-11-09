@@ -6,13 +6,12 @@
 #include <vector>
 #include <string>
 
-#include "Mesh.h"
-#include "Camera.h"
-
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 
+class Mesh;
 class Device;
+class Camera;
 class SwapChain;
 class VertexBuffer;
 class CommandBuffer;
@@ -91,7 +90,7 @@ public:
 
   void draw();
   void addMesh(const Mesh &);
-  Camera &camera() { return *_camera; }
+  Camera &camera();
 
   void addVertexShader(const std::string &path);
   void addFragmentShader(const std::string &path);

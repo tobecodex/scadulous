@@ -8,6 +8,7 @@
 #include "Mesh.h"
 #include "Vulkan.h"
 #include "Loader.h"
+#include "Camera.h"
 #include "SocketServer.h"
 
 const uint32_t WIDTH = 800;
@@ -84,25 +85,65 @@ private:
       switch (key)
       {
         case GLFW_KEY_W : {
-          _vulkan->camera().forward();
+          _vulkan->camera().forward(0.1f);
         }
         break;
 
         case GLFW_KEY_S : {
-          _vulkan->camera().backward();
+          _vulkan->camera().backward(0.1f);
         }
         break;
 
         case GLFW_KEY_A : {
-          _vulkan->camera().left();
+          _vulkan->camera().left(0.1f);
         }
         break;
    
         case GLFW_KEY_D : {
-          _vulkan->camera().right();
+          _vulkan->camera().right(0.1f);
         }
         break;
-        
+
+        case GLFW_KEY_2 : {
+          _vulkan->camera().up(0.1f);
+        }
+        break;
+
+        case GLFW_KEY_X : {
+          _vulkan->camera().down(0.1f);
+        }
+        break;
+
+        case GLFW_KEY_Q : {
+          _vulkan->camera().yaw(-0.1f);
+        }
+        break;
+
+        case GLFW_KEY_E : {
+          _vulkan->camera().yaw(0.1f);
+        }
+        break;
+
+        case GLFW_KEY_R : {
+          _vulkan->camera().pitch(-0.1f);
+        }
+        break;
+
+        case GLFW_KEY_F : {
+          _vulkan->camera().pitch(0.1f);
+        }
+        break;
+
+        case GLFW_KEY_Z : {
+          _vulkan->camera().roll(-0.1f);
+        }
+        break;
+
+        case GLFW_KEY_C : {
+          _vulkan->camera().roll(0.1f);
+        }
+        break;
+
         case GLFW_KEY_O : {
         }
         break;

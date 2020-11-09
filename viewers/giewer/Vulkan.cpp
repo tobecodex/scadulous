@@ -1,8 +1,5 @@
 #include "Vulkan.h"
 
-#include "Device.h"
-#include "Camera.h"
-
 #include <set>
 #include <string>
 #include <fstream>
@@ -16,9 +13,13 @@
 
 #include <chrono>
 
+#include "Mesh.h"
+
 #include "CommandPool.h"
 #include "CommandBuffer.h"
 
+#include "Camera.h"
+#include "Device.h"
 #include "ResourceBuffer.h"
 #include "DescriptorSet.h"
 #include "DescriptorPool.h"
@@ -63,6 +64,16 @@ Vulkan::~Vulkan()
   vkDestroyInstance(_instance, nullptr);
 }
 
+Vulkan::operator VkDevice() const { return *_device; }
+Vulkan::operator VkPhysicalDevice() const { return *_device; }
+Vulkan::operator VkInstance() const { return _instance; }
+Vulkan::operator VkSurfaceKHR() const { return _surface; }
+
+Camera &Vulkan::camera()
+{
+  return *_camera;
+}
+
 void Vulkan::createSwapChain()
 {
   _swapChain = new SwapChain(*_device, _surface);
@@ -92,11 +103,6 @@ void Vulkan::createGraphicsPipeline()
   _commandPool = new CommandPool(*_device, _device->graphicsFamily());
 
 }
-
-Vulkan::operator VkDevice() const { return *_device; }
-Vulkan::operator VkPhysicalDevice() const { return *_device; }
-Vulkan::operator VkInstance() const { return _instance; }
-Vulkan::operator VkSurfaceKHR() const { return _surface; }
 
 bool Vulkan::checkValidationLayers(const std::vector<const char *> &validationLayers)
 {

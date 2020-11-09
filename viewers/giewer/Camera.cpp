@@ -1,6 +1,8 @@
 #include "Camera.h"
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/rotate_vector.hpp"
 
 Camera::Camera(float width, float height) : _width(width), _height(height)
 {
@@ -23,24 +25,51 @@ const ViewTransform &Camera::transform()
   return _transform;
 }
 
-void Camera::forward()
+void Camera::forward(float s)
 {
-  _pos += (_ahead * 0.1f);
+  _pos += (_ahead * s);
 }
 
-void Camera::backward()
+void Camera::backward(float s)
 {
-  _pos -= (_ahead * 0.1f);
+  _pos -= (_ahead * s);
 }
 
-void Camera::left()
+void Camera::left(float s)
 {
-  _pos -= glm::normalize(glm::cross(_up, _ahead)) * 0.1f;
+  _pos -= glm::normalize(glm::cross(_up, _ahead)) * s;
 }
 
-void Camera::right()
+void Camera::right(float s)
 {
-  _pos += glm::normalize(glm::cross(_up, _ahead)) * 0.1f;
+  _pos += glm::normalize(glm::cross(_up, _ahead)) * s;
+}
+
+void Camera::up(float s)
+{
+  _pos += (_up * s);
+}
+
+void Camera::down(float s)
+{
+  _pos -= (_up * s);
+}
+
+void Camera::yaw(float theta)
+{
+  _ahead = glm::rotate(_ahead, theta, _up);
+}
+
+void Camera::pitch(float theta)
+{
+  glm::vec3 right = glm::normalize(glm::cross(_up, _ahead));
+  _ahead = glm::rotate(_ahead, theta, right);
+  _up = glm::cross(_ahead, right);
+}
+
+void Camera::roll(float theta)
+{
+  _up = glm::rotate(_up, theta, _ahead);
 }
 
 void Camera::lookAt(float x, float y, float z)
