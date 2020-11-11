@@ -2,7 +2,7 @@
 #define __SWAP_CHAIN_H
 
 #include <vector>
-#include "Vulkan.h"
+#include <vulkan/vulkan.h>
 
 class Device;
 
@@ -28,7 +28,7 @@ private:
   VkSurfaceFormatKHR chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
 
 public:
-  SwapChain(const Device &, const VkSurfaceKHR &);
+  SwapChain(Device &, const VkSurfaceKHR &);
   ~SwapChain();
 
   uint32_t size() { return (uint32_t)_frameBuffers.size(); }

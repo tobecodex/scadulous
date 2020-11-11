@@ -1,10 +1,12 @@
 #include "SwapChain.h"
 
+#include <stdexcept>
 #include <algorithm>
 
+#include "Vulkan.h"
 #include "Device.h"
 
-SwapChain::SwapChain(const Device &device, const VkSurfaceKHR &surface)
+SwapChain::SwapChain(Device &device, const VkSurfaceKHR &surface)
 {
   const PhysicalDevice::SwapChainProperties &swapChainProperties = device.swapChainProperties();
 
@@ -19,7 +21,7 @@ SwapChain::SwapChain(const Device &device, const VkSurfaceKHR &surface)
 
   VkSwapchainCreateInfoKHR createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-  createInfo.surface = Vulkan::context();
+  createInfo.surface = Vulkan::ctx().surface();
 
   createInfo.minImageCount = imageCount;
   createInfo.imageFormat = surfaceFormat.format;
@@ -69,15 +71,15 @@ SwapChain::SwapChain(const Device &device, const VkSurfaceKHR &surface)
 
 SwapChain::~SwapChain()
 {
-  vkDestroyRenderPass(Vulkan::context(), _renderPass, nullptr);
+  vkDestroyRenderPass(Vulkan::ctx().device(), _renderPass, nullptr);
 
   for (auto frameBuffer : _frameBuffers) {
-    vkDestroyFramebuffer(Vulkan::context(), frameBuffer, nullptr);
+    vkDestroyFramebuffer(Vulkan::ctx().device(), frameBuffer, nullptr);
   }
   for (auto imageView : _imageViews) {
-    vkDestroyImageView(Vulkan::context(), imageView, nullptr);
+    vkDestroyImageView(Vulkan::ctx().device(), imageView, nullptr);
   }
-  vkDestroySwapchainKHR(Vulkan::context(), _swapChain, nullptr);
+  vkDestroySwapchainKHR(Vulkan::ctx().device(), _swapChain, nullptr);
 }
 
 VkSurfaceFormatKHR SwapChain::chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) 

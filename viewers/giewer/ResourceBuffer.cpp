@@ -1,5 +1,6 @@
 #include "ResourceBuffer.h"
 #include "Device.h"
+#include "Vulkan.h"
 
 #include <stdexcept>
 
@@ -26,23 +27,32 @@ ResourceBuffer::ResourceBuffer(size_t size, VkBufferUsageFlagBits usageFlags, Vk
   bufferInfo.usage = usageFlags;
   bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  if (vkCreateBuffer(Vulkan::context(), &bufferInfo, nullptr, &_buffer) != VK_SUCCESS) {
+  if (vkCreateBuffer(Vulkan::ctx().device(), &bufferInfo, nullptr, &_buffer) != VK_SUCCESS) {
     throw std::runtime_error("failed to create buffer!");
   }
 
   VkMemoryRequirements memRequirements;
-  vkGetBufferMemoryRequirements(Vulkan::context(), _buffer, &memRequirements);
+  vkGetBufferMemoryRequirements(Vulkan::ctx().device(), _buffer, &memRequirements);
 
   VkMemoryAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex = findMemoryType(Vulkan::context(), memRequirements.memoryTypeBits, memFlags);
+  allocInfo.memoryTypeIndex = findMemoryType(
+    Vulkan::ctx().physicalDevice(), memRequirements.memoryTypeBits, memFlags
+  );
 
-  if (vkAllocateMemory(Vulkan::context(), &allocInfo, nullptr, &_bufferMemory) != VK_SUCCESS) {
+  if (vkAllocateMemory(Vulkan::ctx().device(), &allocInfo, nullptr, &_bufferMemory) != VK_SUCCESS) {
     throw std::runtime_error("failed to allocate buffer memory!");
   }
 
-  if (vkBindBufferMemory(Vulkan::context(), _buffer, _bufferMemory, 0) != VK_SUCCESS) {
+  if (vkBindBufferMemory(Vulkan::ctx().device(), _buffer, _bufferMemory, 0) != VK_SUCCESS) {
     throw std::runtime_error("failed to bind buffer memory!");
   }
 }
+
+/*ResourceBuffer::ResourceBuffer(ResourceBuffer &&other) noexcept
+{
+  _size = std::move(other._size);
+  _buffer = std::move(other._buffer);
+  _bufferMemory = std::move(other._bufferMemory);
+}*/

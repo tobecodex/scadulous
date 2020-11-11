@@ -15,15 +15,14 @@
 
 #include "Mesh.h"
 
-#include "CommandPool.h"
-#include "CommandBuffer.h"
-
 #include "Camera.h"
-#include "Device.h"
+#include "SwapChain.h"
 #include "ResourceBuffer.h"
 #include "DescriptorSet.h"
 #include "DescriptorPool.h"
+#include "ResourceBuffer.h"
 #include "DescriptorSetLayout.h"
+#include "GraphicsPipeline.h"
 
 Vulkan *Vulkan::_currentContext = nullptr;
 
@@ -32,6 +31,7 @@ Vulkan::Vulkan(
   const std::vector<const char *> &validationLayers
 ) : _extensions(extensions), _validationLayers(validationLayers)
 {
+
   _instance = createInstance(_extensions, _validationLayers);
   _currentContext = this;
 }
@@ -45,29 +45,28 @@ Vulkan::~Vulkan()
   vkDestroySemaphore(*_device, _imageAvailableSemaphore, nullptr);
   vkDestroySemaphore(*_device, _renderFinishedSemaphore, nullptr);
 
-  if (_descriptorPool) {
-    delete _descriptorPool;
+  for (auto layout : _descriptorSetLayouts) {
+    vkDestroyDescriptorSetLayout(*_device, layout, nullptr);
   }
-  if (_descriptorSetLayouts) {
-    delete _descriptorSetLayouts;
-  }
-  if (_commandPool) {
-    delete _commandPool;
-  }
+
   if (_swapChain) {
     delete _swapChain;
   }
-  if (_device) {
-    delete _device;
-  }
+  
   vkDestroySurfaceKHR(_instance, _surface, nullptr);
   vkDestroyInstance(_instance, nullptr);
 }
 
-Vulkan::operator VkDevice() const { return *_device; }
-Vulkan::operator VkPhysicalDevice() const { return *_device; }
-Vulkan::operator VkInstance() const { return _instance; }
-Vulkan::operator VkSurfaceKHR() const { return _surface; }
+void Vulkan::setSurface(const VkSurfaceKHR &surface)
+{
+  _surface = surface;
+  _device = new Device();
+
+  createSwapChain();
+  createGraphicsPipeline();
+
+  _camera = new Camera(_swapChain->extent().width, _swapChain->extent().height);
+}
 
 Camera &Vulkan::camera()
 {
@@ -81,27 +80,60 @@ void Vulkan::createSwapChain()
 
 void Vulkan::createGraphicsPipeline()
 {
-  _descriptorPool = new DescriptorPool(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _swapChain->size());
-  _descriptorSetLayouts = new std::vector<DescriptorSetLayout>();
-  _descriptorSetLayouts->emplace_back(
-    *_device, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT
-  );
-
-  _descriptorSets = _descriptorPool->createDescriptorSets(*_device, _swapChain->size(), *_descriptorSetLayouts);
-
-  _cameraUniforms = new std::vector<UniformBuffer>;
-  _cameraUniforms->reserve(_swapChain->size());
-
-  for (int i = 0; i < _cameraUniforms->capacity(); i++) {
-    _cameraUniforms->emplace_back(sizeof(ViewTransform), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    (*_descriptorSets)[i].bindResourceBuffer((*_cameraUniforms)[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+  std::vector<VkDescriptorSetLayoutBinding> layoutBinding(1);
+  for (int i = 0; i < layoutBinding.size(); i++) {
+    layoutBinding[i].binding = i;
+    layoutBinding[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    layoutBinding[i].descriptorCount = 1;
+    layoutBinding[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    layoutBinding[i].pImmutableSamplers = nullptr;
   }
 
-  _graphicsPipeline = new GraphicsPipeline(*_device, *_swapChain, *_descriptorSetLayouts);
+  VkDescriptorSetLayoutCreateInfo layoutInfo{};
+  layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  layoutInfo.bindingCount = (uint32_t)layoutBinding.size();
+  layoutInfo.pBindings = layoutBinding.data();
+
+  _descriptorSetLayouts.resize(1);
+  if (vkCreateDescriptorSetLayout(*_device, &layoutInfo, nullptr, _descriptorSetLayouts.data()) != VK_SUCCESS) {
+    throw std::runtime_error("failed to create descriptor set layout!");
+  }
+
+  std::vector<VkDescriptorSetLayout> layouts(_swapChain->size(), _descriptorSetLayouts[0]);
+  _descriptorPool = new DescriptorPool(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, layouts.size());
+  _descriptorSets = _descriptorPool->createDescriptorSets(layouts);
+
+  for (int i = 0; i < _descriptorSets.size(); i++) {
+
+    VkDescriptorBufferInfo bufferInfo{};
+  
+    _cameraUniforms[i] = UniformBuffer(
+      sizeof(ViewTransform), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+    );
+
+    //bufferInfo.buffer = _modelTransforms[i];
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(glm::mat4);
+
+    VkWriteDescriptorSet descriptorWrite{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = _descriptorSets[i];
+    descriptorWrite.dstBinding = 1;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pBufferInfo = &bufferInfo;
+    descriptorWrite.pImageInfo = nullptr; // Optional
+    descriptorWrite.pTexelBufferView = nullptr; // Optional
+
+    vkUpdateDescriptorSets(*_device, 1, &descriptorWrite, 0, nullptr);
+  }
+
+  _graphicsPipeline = new GraphicsPipeline(*_swapChain, _descriptorSetLayouts);
 
   createSemaphores();
-  _commandPool = new CommandPool(*_device, _device->graphicsFamily());
-
+  _commandPool = new CommandPool(_device->graphicsFamily());
+  _commandBuffers = _commandPool->createCommandBuffers(_swapChain->size());
 }
 
 bool Vulkan::checkValidationLayers(const std::vector<const char *> &validationLayers)
@@ -160,35 +192,6 @@ VkInstance Vulkan::createInstance(
   return instance;
 }
 
-void Vulkan::setSurface(const VkSurfaceKHR &surface)
-{
-  _surface = surface;
-  _device = new Device();
-
-  createSwapChain();
-  createGraphicsPipeline();
-
-  _camera = new Camera(_swapChain->extent().width, _swapChain->extent().height);
-}
-
-VertexBuffer *Vulkan::createVertexBuffer(const std::vector<glm::vec3> &vertices)
-{
-  size_t bufSize = sizeof(vertices[0]) * vertices.size();
-
-  VertexBuffer *buffer = new VertexBuffer(
-    bufSize,
-    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-  );
-
-  void* data;
-  if (vkMapMemory(*_device, (VkDeviceMemory)*buffer, 0, bufSize, 0, &data) != VK_SUCCESS) {
-    throw std::runtime_error("failed to map vertex buffer!");
-  }
-  memcpy(data, vertices.data(), bufSize);
-  vkUnmapMemory(*_device, *buffer);
-
-  return buffer;
-}
 
 void Vulkan::createSemaphores()
 {
@@ -209,9 +212,12 @@ void Vulkan::draw()
   );
 
   void* data;
-  vkMapMemory(*_device, (*_cameraUniforms)[imageIndex], 0, sizeof(ViewTransform), 0, &data);
+  vkMapMemory(*_device, _cameraUniforms[imageIndex], 0, sizeof(ViewTransform), 0, &data);
   memcpy(data, &_camera->transform(), sizeof(ViewTransform));
-  vkUnmapMemory(*_device, (*_cameraUniforms)[imageIndex]);
+  vkUnmapMemory(*_device, _cameraUniforms[imageIndex]);
+
+  static unsigned int framesRendered = 0;
+  framesRendered++;
 
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -223,7 +229,7 @@ void Vulkan::draw()
   submitInfo.pWaitDstStageMask = waitStages;
 
   submitInfo.commandBufferCount = 1;//_commandBuffers->size();
-  std::vector<VkCommandBuffer> buffers{(*_commandBuffers)[imageIndex]};
+  std::vector<VkCommandBuffer> buffers{_commandBuffers[imageIndex]};
   submitInfo.pCommandBuffers = &buffers[0];
 
   VkSemaphore signalSemaphores[] = { _renderFinishedSemaphore };
@@ -250,24 +256,41 @@ void Vulkan::draw()
   vkQueueWaitIdle(_device->presentationQueue());
 }
 
-void Vulkan::addMesh(const Mesh &mesh)
+void Vulkan::addMesh(Mesh *m)
 {
-  VertexBuffer *vb = createVertexBuffer(mesh.vertices());
-  _geometry.push_back(vb);
+  m->createVertexBuffer();
+  _meshes.push_back(m);
 
-  std::vector<VkBuffer> buffers{(VkBuffer)*vb};
-  _commandBuffers = _commandPool->createCommandBuffers(*_device, _swapChain->size());
-  for (int i = 0; i < _commandBuffers->size(); i++) {
-    CommandBuffer &buffer = (*_commandBuffers)[i];
-    std::vector<VkDescriptorSet> descriptorSets{(*_descriptorSets)[i]};
-    buffer.beginRecording(i, *_swapChain, *_graphicsPipeline, *_descriptorSets);
-    vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *_graphicsPipeline);
-    
+  for (auto b : _commandBuffers) {
+
+    for (auto m : _meshes) {
+
+      /*
+      buffer.beginRecording(i, *_swapChain, *_graphicsPipeline, _descriptorSets[i]);
+
+    vkCmdPushConstants(
+      commandBuffer,
+      pipelineLayout,
+      VK_SHADER_STAGE_VERTEX_BIT,
+      0,
+      sizeof(PrimitiveUniformObject),
+      &uniformData[i]
+    );
+
+    VkDescriptorSet descriptorSet = (*_descriptorSets)[i];
+    vkCmdBindDescriptorSets(
+      buffer, 
+      VK_PIPELINE_BIND_POINT_GRAPHICS, 
+      _graphicsPipeline->pipelineLayout(), 
+      0, 1, &descriptorSet, 
+      0, nullptr
+    );
+ 
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(buffer, 0, 1, buffers.data(), offsets);
-    vkCmdBindDescriptorSets(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline->pipelineLayout(), 0, 1, &descriptorSets[0], 0, nullptr);
-
     vkCmdDraw(buffer, (uint32_t)mesh.vertices().size(), 1, 0, 0);
-    buffer.endRecording();
+
+    buffer.endRecording(); */
+    }
   }
 }

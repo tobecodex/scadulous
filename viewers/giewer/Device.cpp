@@ -2,14 +2,18 @@
 
 #include <set>
 #include <iterator>
+#include <stdexcept>
 #include <algorithm>
+
+#include "PhysicalDevice.h"
+#include "Vulkan.h"
 
 Device::Device()
 {
   _physicalDevice = selectPhysicalDevice({ VK_KHR_SWAPCHAIN_EXTENSION_NAME });
   
   auto graphicsFamilies = _physicalDevice->getQueueFamilies(VK_QUEUE_GRAPHICS_BIT);
-  auto presentationFamilies = _physicalDevice->getPresentationQueues(Vulkan::context());
+  auto presentationFamilies = _physicalDevice->getPresentationQueues(Vulkan::ctx().surface());
 
   if (graphicsFamilies.size() == 0) {
     throw std::runtime_error("Could not find a graphics queue");
@@ -51,7 +55,7 @@ Device::~Device()
 
 const PhysicalDevice::SwapChainProperties &Device::swapChainProperties() const
 {
-  return _physicalDevice->swapChainProperties(Vulkan::context());
+  return _physicalDevice->swapChainProperties(Vulkan::ctx().surface());
 }
 
 bool Device::isSuitableDevice(PhysicalDevice &device, const std::vector<const char *> &extensions)
@@ -62,11 +66,11 @@ bool Device::isSuitableDevice(PhysicalDevice &device, const std::vector<const ch
   bool extensionsOK = device.supportsExtensions(extensions);
    
   if (extensionsOK) {
-    const PhysicalDevice::SwapChainProperties &swapChain = device.swapChainProperties(Vulkan::context());
+    const PhysicalDevice::SwapChainProperties &swapChain = device.swapChainProperties(Vulkan::ctx().surface());
     swapChainOK = (!swapChain._formats.empty() && !swapChain._presentModes.empty());
   }
 
-  presentationOK = device.hasPresentationSupport(Vulkan::context());
+  presentationOK = device.hasPresentationSupport(Vulkan::ctx().surface());
   queueFamiliesOK = device.hasQueueFamilySupport(VK_QUEUE_GRAPHICS_BIT);
   
   return extensionsOK && swapChainOK && queueFamiliesOK && presentationOK;
@@ -75,13 +79,13 @@ bool Device::isSuitableDevice(PhysicalDevice &device, const std::vector<const ch
 PhysicalDevice *Device::selectPhysicalDevice(const std::vector<const char *> &extensions)
 {
   uint32_t deviceCount = 0;
-  vkEnumeratePhysicalDevices(Vulkan::context(), &deviceCount, nullptr);
+  vkEnumeratePhysicalDevices(Vulkan::ctx().instance(), &deviceCount, nullptr);
   if (deviceCount == 0) {
     throw std::runtime_error("failed to find GPUs with Vulkan support!");
   }
 
   std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
-  vkEnumeratePhysicalDevices(Vulkan::context(), &deviceCount, physicalDevices.data());
+  vkEnumeratePhysicalDevices(Vulkan::ctx().instance(), &deviceCount, physicalDevices.data());
   std::vector<PhysicalDevice> devices(physicalDevices.begin(), physicalDevices.end());
 
 
@@ -106,9 +110,9 @@ void Device::createLogicalDevice(const std::vector<uint32_t> &queueFamilies)
   createInfo.enabledExtensionCount = (uint32_t)(deviceExtensions.size());
   createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-  createInfo.enabledLayerCount = static_cast<uint32_t>(Vulkan::context().validationLayers().size());
-  if (Vulkan::context().validationLayers().size() > 0) {
-    createInfo.ppEnabledLayerNames = Vulkan::context().validationLayers().data();
+  createInfo.enabledLayerCount = static_cast<uint32_t>(Vulkan::ctx().validationLayers().size());
+  if (Vulkan::ctx().validationLayers().size() > 0) {
+    createInfo.ppEnabledLayerNames = Vulkan::ctx().validationLayers().data();
   }
 
   std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;

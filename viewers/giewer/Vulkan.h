@@ -5,24 +5,28 @@
 
 #include <vector>
 #include <string>
+#include <optional>
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 
 class Mesh;
-class Device;
 class Camera;
 class SwapChain;
-class VertexBuffer;
 class CommandBuffer;
-class UniformBuffer;
-class ResourceBuffer;
+
 class GraphicsPipeline;
-class CommandPool;
-class CommandBuffer;
+
+class VertexBuffer;
+class UniformBuffer;
+
 class DescriptorSet;
-class DescriptorPool;
 class DescriptorSetLayout;
+
+#include "Device.h"
+#include "CommandPool.h"
+#include "CommandBuffer.h"
+#include "DescriptorPool.h"
 
 class Vulkan
 {
@@ -54,19 +58,20 @@ private:
   void createGraphicsPipeline();
 
   DescriptorPool *_descriptorPool = nullptr;
-  std::vector<DescriptorSet> *_descriptorSets = nullptr;
-  std::vector<DescriptorSetLayout> *_descriptorSetLayouts = nullptr;
+  std::vector<DescriptorSet> _descriptorSets;
+  std::vector<VkDescriptorSetLayout> _descriptorSetLayouts;
 
   static bool checkValidationLayers(const std::vector<const char *> &validationLayers);
 
   Camera *_camera = nullptr;
-  std::vector<UniformBuffer> *_cameraUniforms;
 
-  std::vector<VertexBuffer *> _geometry;
+  std::vector<UniformBuffer> _cameraUniforms;
+
+  std::vector<Mesh *> _meshes;
   VertexBuffer *createVertexBuffer(const std::vector<glm::vec3> &vertices);
 
   CommandPool *_commandPool = nullptr;
-  std::vector<CommandBuffer> *_commandBuffers = nullptr;
+  std::vector<CommandBuffer> _commandBuffers;
 
 public:
 
@@ -76,20 +81,20 @@ public:
   );
   ~Vulkan();
 
-  static Vulkan &context() { return *_currentContext; }
+  static Vulkan &ctx();
+
+  VkDevice device() const; 
+  VkInstance instance() const; 
+  VkSurfaceKHR surface() const;
+  VkPhysicalDevice physicalDevice() const;
 
   const std::vector<const char *> &extensions() const { return _extensions; }
   const std::vector<const char *> &validationLayers() const { return _validationLayers; }
 
-  operator VkDevice() const;
-  operator VkInstance() const; 
-  operator VkSurfaceKHR() const;
-  operator VkPhysicalDevice() const;
-  
   void setSurface(const VkSurfaceKHR &);
 
   void draw();
-  void addMesh(const Mesh &);
+  void addMesh(Mesh *);
   Camera &camera();
 
   void addVertexShader(const std::string &path);

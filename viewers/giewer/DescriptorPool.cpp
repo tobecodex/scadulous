@@ -1,4 +1,6 @@
 #include "DescriptorPool.h"
+
+#include "Vulkan.h"
 #include "DescriptorSet.h"
 #include "DescriptorSetLayout.h"
 
@@ -17,33 +19,30 @@ DescriptorPool::DescriptorPool(VkDescriptorType type, uint32_t maxSets)
 
   poolInfo.maxSets = maxSets;
 
-  if (vkCreateDescriptorPool(Vulkan::context(), &poolInfo, nullptr, &_descriptorPool) != VK_SUCCESS) {
+  if (vkCreateDescriptorPool(Vulkan::ctx().device(), &poolInfo, nullptr, &_descriptorPool) != VK_SUCCESS) {
     throw std::runtime_error("failed to create descriptor pool!");
   }
 }
 
 DescriptorPool::~DescriptorPool()
 {
-  vkDestroyDescriptorPool(Vulkan::context(), _descriptorPool, nullptr);
+  vkDestroyDescriptorPool(Vulkan::ctx().device(), _descriptorPool, nullptr);
 }
 
-std::vector<DescriptorSet> *DescriptorPool::createDescriptorSets(Device &device, uint32_t numSets, const std::vector<DescriptorSetLayout> &layouts)
+std::vector<DescriptorSet> DescriptorPool::createDescriptorSets(const std::vector<VkDescriptorSetLayout> &layouts)
 {
-  std::vector<VkDescriptorSetLayout> _layouts(numSets, layouts.front());
-
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool = _descriptorPool;
-  allocInfo.descriptorSetCount = numSets;
-  allocInfo.pSetLayouts = _layouts.data();
+  allocInfo.descriptorSetCount = (uint32_t)layouts.size();
+  allocInfo.pSetLayouts = layouts.data();
 
-  auto descriptorSets = new std::vector<DescriptorSet>(numSets) ;
-  if (vkAllocateDescriptorSets(device, &allocInfo, (VkDescriptorSet *)descriptorSets->data()) != VK_SUCCESS) {
+  std::vector<DescriptorSet> descriptorSets;
+  descriptorSets.resize(layouts.size());
+
+  if (vkAllocateDescriptorSets(Vulkan::ctx().device(), &allocInfo, (VkDescriptorSet *)descriptorSets.data()) != VK_SUCCESS) {
     throw std::runtime_error("failed to allocate descriptor sets!");
   }
 
   return descriptorSets;
 }
-
-// ##
-

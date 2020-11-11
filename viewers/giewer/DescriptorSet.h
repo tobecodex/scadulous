@@ -1,7 +1,7 @@
 #ifndef __DESCRIPTOR_SET_H
 #define __DESCRIPTOR_SET_H
 
-#include "Vulkan.h"
+#include <vulkan/vulkan.h>
 
 class ResourceBuffer;
 

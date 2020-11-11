@@ -2,24 +2,28 @@
 #define __MESH_H
 
 #include <vector>
+#include <optional>
 
-#include <glm/vec3.hpp>
+#include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
+
+#include "ResourceBuffer.h"
 
 class Mesh
 {
 private:
+  glm::mat4 _transform;
   std::vector<glm::vec3> _vertices;
+  VertexBuffer *_vertexBuffer = nullptr;
 
 public:
-  Mesh(std::vector<glm::vec3> &vertices) : _vertices(vertices)
-  {
-  }
-
+  Mesh(const std::vector<glm::vec3> &vertices);
   const std::vector<glm::vec3> &vertices() const { return _vertices; }
 
   static VkVertexInputBindingDescription getVertexBindingDescription();
   static VkVertexInputAttributeDescription getVertexAttributeDescription();
+  
+  void createVertexBuffer();
 };
 
 #endif

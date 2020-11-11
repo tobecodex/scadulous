@@ -10,7 +10,7 @@ Camera::Camera(float width, float height) : _width(width), _height(height)
   _ahead = { 0, 0, 1 };
   _up = { 0, 1, 0 };
 
-  _transform._model = glm::mat4(1.0f);
+  //_transform._model = glm::mat4(1.0f);
   _transform._proj = glm::perspective(glm::radians(45.0f), _width / (float)_height, 0.1f, 10.0f);
   _transform._proj[1][1] *= -1;
 }

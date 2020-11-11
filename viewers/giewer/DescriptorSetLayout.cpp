@@ -1,8 +1,9 @@
 #include "DescriptorSetLayout.h"
 
-#include "Device.h"
+#include <stdexcept>
+#include "Vulkan.h"
 
-DescriptorSetLayout::DescriptorSetLayout(const Device &device, uint32_t loc, VkDescriptorType type, VkShaderStageFlags shaderStages)
+DescriptorSetLayout::DescriptorSetLayout(uint32_t loc, VkDescriptorType type, VkShaderStageFlags shaderStages)
 {
   VkDescriptorSetLayoutBinding layoutBinding{};
   layoutBinding.binding = loc;
@@ -16,12 +17,12 @@ DescriptorSetLayout::DescriptorSetLayout(const Device &device, uint32_t loc, VkD
   layoutInfo.bindingCount = 1;
   layoutInfo.pBindings = &layoutBinding;
 
-  if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &_descriptorSetLayout) != VK_SUCCESS) {
+  if (vkCreateDescriptorSetLayout(Vulkan::ctx().device(), &layoutInfo, nullptr, &_descriptorSetLayout) != VK_SUCCESS) {
     throw std::runtime_error("failed to create descriptor set layout!");
   }
 }
 
 DescriptorSetLayout::~DescriptorSetLayout()
 {
-  vkDestroyDescriptorSetLayout(Vulkan::context(), _descriptorSetLayout, nullptr);
+  vkDestroyDescriptorSetLayout(Vulkan::ctx().device(), _descriptorSetLayout, nullptr);
 }

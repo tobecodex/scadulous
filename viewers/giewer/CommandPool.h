@@ -1,11 +1,9 @@
 #ifndef __COMMAND_POOL_H
 #define __COMMAND_POOL_H
 
-#include "Vulkan.h"
+#include <vector>
+#include "vulkan/vulkan.h"
 
-class SwapChain;
-class DescriptorSet;
-class GraphicsPipeline;
 class CommandBuffer;
 
 class CommandPool
@@ -14,10 +12,12 @@ private:
   VkCommandPool _commandPool;
 
 public:
-  CommandPool(Device &, uint32_t queueFamily);
+  CommandPool(uint32_t queueFamily);
+  CommandPool(CommandPool &&other) = default;
+
   ~CommandPool();
 
-  std::vector<CommandBuffer> *createCommandBuffers(Device &, uint32_t numBuffers);
+  std::vector<CommandBuffer> createCommandBuffers(uint32_t numBuffers);
 };
 
 #endif

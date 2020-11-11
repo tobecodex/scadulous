@@ -1,13 +1,9 @@
-#ifndef __DESCRIPTOR_H
-#define __DESCRIPTOR_H
+#ifndef __DESCRIPTOR_POOL_H
+#define __DESCRIPTOR_POOL_H
 
-#include "Vulkan.h"
-#include "Device.h"
-#include "ResourceBuffer.h"
+#include <vector>
+#include <vulkan/vulkan.h>
 
-#include <stdexcept>
-
-class Device;
 class DescriptorSet;
 class DescriptorSetLayout;
 
@@ -17,10 +13,12 @@ private:
   VkDescriptorPool _descriptorPool;
 
 public:
+  DescriptorPool(DescriptorPool &&) = default;
+  DescriptorPool &operator=(DescriptorPool &&) = default;
   DescriptorPool(VkDescriptorType type, uint32_t maxSets);
   ~DescriptorPool();
 
-  std::vector<DescriptorSet> *createDescriptorSets(Device &, uint32_t numSets, const std::vector<DescriptorSetLayout> &);
+  std::vector<DescriptorSet> createDescriptorSets(const std::vector<VkDescriptorSetLayout> &);
 };
 
 #endif

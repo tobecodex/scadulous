@@ -1,11 +1,12 @@
 #ifndef __COMMAND_BUFFER_H
 #define __COMMAND_BUFFER_H
 
-#include "Vulkan.h"
+#include <vector>
+#include <vulkan/vulkan.h>
 
-class GraphicsPipeline;
-class DescriptorSet;
 class SwapChain;
+class DescriptorSet;
+class GraphicsPipeline;
 
 class CommandBuffer
 {

@@ -45,6 +45,7 @@ set(sources
   ResourceBuffer.cpp
   DescriptorSet.cpp
   DescriptorSetLayout.cpp
+  PhysicalDevice.cpp
 )
 
 add_executable(${CMAKE_PROJECT_NAME} ${sources} ${SHADER_SPV})

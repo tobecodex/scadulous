@@ -1,4 +1,29 @@
 #include "Mesh.h"
+#include "Vulkan.h"
+
+#include <stdexcept>
+#include "ResourceBuffer.h"
+
+Mesh::Mesh(const std::vector<glm::vec3> &vertices) : _vertices(vertices)
+{
+}
+
+void Mesh::createVertexBuffer()
+{
+  size_t bufSize = sizeof(_vertices[0]) * _vertices.size();
+
+  _vertexBuffer = new VertexBuffer(
+    bufSize,
+    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+  );
+
+  void* data;
+  if (vkMapMemory(Vulkan::ctx().device(), *_vertexBuffer, 0, bufSize, 0, &data) != VK_SUCCESS) {
+    throw std::runtime_error("failed to map vertex buffer!");
+  }
+  memcpy(data, _vertices.data(), bufSize);
+  vkUnmapMemory(Vulkan::ctx().device(), *_vertexBuffer);
+}
 
 VkVertexInputBindingDescription Mesh::getVertexBindingDescription()
 {

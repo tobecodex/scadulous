@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include "Mesh.h"
+#include "Device.h"
 #include "SwapChain.h"
 #include "ShaderModule.h"
 #include "DescriptorSet.h"
@@ -11,9 +12,11 @@
 #include "DescriptorSetLayout.h"
 
 GraphicsPipeline::GraphicsPipeline(
-  const Device &device, const SwapChain &swapChain, std::vector<DescriptorSetLayout> &descriptorSetLayouts
+  const SwapChain &swapChain, std::vector<VkDescriptorSetLayout> &descriptorSetLayouts
 )
 {
+  Device device;
+
   ShaderModule vertShader(device, "shaders/shader.vert.spv");
   ShaderModule fragShader(device, "shaders/shader.frag.spv");
 
@@ -67,7 +70,7 @@ GraphicsPipeline::GraphicsPipeline(
   rasterizer.depthClampEnable = VK_FALSE;
 
   rasterizer.rasterizerDiscardEnable = VK_FALSE;
-  rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
+  rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
   rasterizer.lineWidth = 1.0f;
   rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
   rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
@@ -107,12 +110,18 @@ GraphicsPipeline::GraphicsPipeline(
   colorBlending.blendConstants[2] = 0.0f; // Optional
   colorBlending.blendConstants[3] = 0.0f; // Optional
 
+  VkPushConstantRange pushConstantRange = {};
+  pushConstantRange.offset = 0;
+  pushConstantRange.size = sizeof(glm::mat4);
+  pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
-  pipelineLayoutInfo.pSetLayouts = (VkDescriptorSetLayout *)descriptorSetLayouts.data();
-  pipelineLayoutInfo.pushConstantRangeCount = 0;
-  pipelineLayoutInfo.pPushConstantRanges = nullptr;
+  pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+  pipelineLayoutInfo.pushConstantRangeCount = 1;
+  pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
   if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &_pipelineLayout) != VK_SUCCESS) {
     throw std::runtime_error("failed to create pipeline layout!");
@@ -139,7 +148,7 @@ GraphicsPipeline::GraphicsPipeline(
 
   pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
   pipelineInfo.basePipelineIndex = -1; // Optional
-
+  
   if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_graphicsPipeline) != VK_SUCCESS) {
     throw std::runtime_error("failed to create graphics pipeline!");
   }

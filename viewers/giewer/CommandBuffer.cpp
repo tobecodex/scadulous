@@ -1,6 +1,7 @@
 #include "CommandBuffer.h"
 #include "SwapChain.h"
 #include "GraphicsPipeline.h"
+#include "DescriptorSet.h"
 
 #include <stdexcept>
 
@@ -30,14 +31,6 @@ void CommandBuffer::beginRecording(int idx, SwapChain &swapChain, GraphicsPipeli
 
   vkCmdBeginRenderPass(_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
   vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-
-  vkCmdBindDescriptorSets(
-    _commandBuffer, 
-    VK_PIPELINE_BIND_POINT_GRAPHICS, 
-    graphicsPipeline.pipelineLayout(), 
-    0, 1, (VkDescriptorSet *)descriptorSets.data(), 
-    0, nullptr
-  );
 }
 
 void CommandBuffer::endRecording()

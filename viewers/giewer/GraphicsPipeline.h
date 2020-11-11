@@ -1,11 +1,11 @@
 #ifndef __GRAPHICS_PIPELINE_H
 #define __GRAPHICS_PIPELINE_H
 
-#include "Vulkan.h"
+#include <vector>
+#include <vulkan/vulkan.h>
 
 class Device;
 class SwapChain;
-class DescriptorSetLayout;
 
 class GraphicsPipeline
 {
@@ -14,7 +14,7 @@ private:
   VkPipelineLayout _pipelineLayout = nullptr;
 
 public:
-  GraphicsPipeline(const Device &, const SwapChain &, std::vector<DescriptorSetLayout> &descriptorSetLayouts);
+  GraphicsPipeline(const SwapChain &, std::vector<VkDescriptorSetLayout> &descriptorSetLayouts);
   ~GraphicsPipeline();
 
   operator VkPipeline() const { return _graphicsPipeline; }

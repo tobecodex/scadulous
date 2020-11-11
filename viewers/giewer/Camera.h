@@ -3,7 +3,7 @@
 
 #include "glm/glm.hpp"
 
-typedef struct { glm::mat4 _model, _view, _proj; } ViewTransform;
+typedef struct { glm::mat4 _view, _proj; } ViewTransform;
 
 class Camera
 {

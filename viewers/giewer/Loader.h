@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 
-#include "mesh.h"
+#include "Mesh.h"
 
 class Loader
 {

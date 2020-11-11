@@ -3,29 +3,30 @@
 #include <vector>
 #include <stdexcept>
 
+#include "Vulkan.h"
 #include "SwapChain.h"
+#include "CommandBuffer.h"
 #include "DescriptorPool.h"
 #include "GraphicsPipeline.h"
-#include "CommandBuffer.h"
 
-CommandPool::CommandPool(Device &device, uint32_t queueFamily)
+CommandPool::CommandPool(uint32_t queueFamily)
 {
   VkCommandPoolCreateInfo poolInfo{};
   poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   poolInfo.queueFamilyIndex = queueFamily;
-  poolInfo.flags = 0;
+  poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-  if (vkCreateCommandPool(device, &poolInfo, nullptr, &_commandPool) != VK_SUCCESS) {
+  if (vkCreateCommandPool(Vulkan::ctx().device(), &poolInfo, nullptr, &_commandPool) != VK_SUCCESS) {
     throw std::runtime_error("failed to create command pool!");
   }
 }
 
 CommandPool::~CommandPool()
 {
-  vkDestroyCommandPool(Vulkan::context(), _commandPool, nullptr);
+  vkDestroyCommandPool(Vulkan::ctx().device(), _commandPool, nullptr);
 }
 
-std::vector<CommandBuffer> *CommandPool::createCommandBuffers(Device &device, uint32_t numBuffers)
+std::vector<CommandBuffer> CommandPool::createCommandBuffers(uint32_t numBuffers)
 {
   VkCommandBufferAllocateInfo allocInfo{};
 
@@ -34,10 +35,12 @@ std::vector<CommandBuffer> *CommandPool::createCommandBuffers(Device &device, ui
   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = numBuffers;
 
-  auto commandBuffers = new std::vector<CommandBuffer>();
-  commandBuffers->resize(numBuffers);
+  std::vector<CommandBuffer> commandBuffers;
+  commandBuffers.resize(numBuffers);
 
-  if (vkAllocateCommandBuffers(device, &allocInfo, (VkCommandBuffer *)commandBuffers->data()) != VK_SUCCESS) {
+  if (vkAllocateCommandBuffers(
+    Vulkan::ctx().device(), &allocInfo, (VkCommandBuffer *)commandBuffers.data()) != VK_SUCCESS
+  ) {
     throw std::runtime_error("failed to allocate command buffers!");
   }
 

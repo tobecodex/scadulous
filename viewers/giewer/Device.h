@@ -1,11 +1,10 @@
-#ifndef __DEVICE_CONTEXT_H
-#define __DEVICE_CONTEXT_H
+#ifndef __DEVICE_H
+#define __DEVICE_H
 
-#include "Vulkan.h"
+#include <vector>
+#include <vulkan/vulkan.h>
 
-#include "SwapChain.h"
 #include "PhysicalDevice.h"
-#include "GraphicsPipeline.h"
 
 class Device
 {
@@ -21,22 +20,22 @@ private:
 
   PhysicalDevice *selectPhysicalDevice(const std::vector<const char *> &extensions);
   bool isSuitableDevice(PhysicalDevice &, const std::vector<const char *> &extensions);
-
   void createLogicalDevice(const std::vector<uint32_t> &queueFamilies);
 
 public:
 
   Device();
+  Device(Device &&) = default;
+  Device &operator =(Device &&) = default;
   ~Device();
 
-  uint32_t graphicsFamily() const { return _graphicsFamily; }
-  uint32_t presentationFamily() const { return _presentationFamily; }
+  operator VkDevice() const;
 
-  VkQueue graphicsQueue() const { return _graphicsQueue; }
-  VkQueue presentationQueue() const { return _graphicsQueue; }
+  uint32_t graphicsFamily() const; 
+  uint32_t presentationFamily() const;
 
-  operator VkDevice() const { return _device; }
-  operator VkPhysicalDevice() const { return *_physicalDevice; }
+  VkQueue graphicsQueue() const;
+  VkQueue presentationQueue() const;
 
   const PhysicalDevice::SwapChainProperties &swapChainProperties() const;
 };

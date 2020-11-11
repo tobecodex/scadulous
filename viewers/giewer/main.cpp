@@ -37,7 +37,7 @@ private:
 
     VkSurfaceKHR surface;
     _vulkan = new Vulkan(extensions, std::vector<const char *>({ "VK_LAYER_KHRONOS_validation" }));
-    if (glfwCreateWindowSurface(*_vulkan, _window, nullptr, &surface) != VK_SUCCESS) {
+    if (glfwCreateWindowSurface(_vulkan->instance(), _window, nullptr, &surface) != VK_SUCCESS) {
       throw std::runtime_error("failed to create window surface!");
     }
     _vulkan->setSurface(surface);
@@ -54,7 +54,7 @@ private:
       { -0.5, -0.5, 0.0 }
     };
 
-    Mesh mesh(tri);
+    Mesh *mesh = new Mesh(tri);
     _vulkan->addMesh(mesh);
   }
 
@@ -188,9 +188,8 @@ public:
     std::istringstream inp(str);
     Mesh *m = loader.load_stl(inp);
     if (_vulkan) {
-      _vulkan->addMesh(*m);
+      _vulkan->addMesh(m);
     }
-    delete m;
   }
 
   void onClose(std::iostream &)
