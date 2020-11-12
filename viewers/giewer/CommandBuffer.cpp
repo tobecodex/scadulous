@@ -1,7 +1,6 @@
 #include "CommandBuffer.h"
 #include "SwapChain.h"
 #include "GraphicsPipeline.h"
-#include "DescriptorSet.h"
 
 #include <stdexcept>
 
@@ -25,7 +24,7 @@ void CommandBuffer::beginRecording(int idx, SwapChain &swapChain, GraphicsPipeli
   renderPassInfo.renderArea.offset = {0, 0};
   renderPassInfo.renderArea.extent = swapChain.extent();
 
-  VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
+  VkClearValue clearColor = {0.0f, 0.1f, 0.0f, 1.0f};
   renderPassInfo.clearValueCount = 1;
   renderPassInfo.pClearValues = &clearColor;
 

@@ -53,6 +53,14 @@ Device::~Device()
   vkDestroyDevice(_device, nullptr);
 }
 
+Device::operator VkDevice() const { return _device; }
+Device::operator VkPhysicalDevice() const { return (VkPhysicalDevice)(*_physicalDevice); }
+
+VkQueue Device::graphicsQueue() const { return _graphicsQueue; }
+uint32_t Device::graphicsFamily() const { return _graphicsFamily; }
+VkQueue Device::presentationQueue() const { return _presentationQueue; }
+uint32_t Device::presentationFamily() const { return _presentationFamily; }
+
 const PhysicalDevice::SwapChainProperties &Device::swapChainProperties() const
 {
   return _physicalDevice->swapChainProperties(Vulkan::ctx().surface());

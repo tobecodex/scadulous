@@ -50,9 +50,12 @@ ResourceBuffer::ResourceBuffer(size_t size, VkBufferUsageFlagBits usageFlags, Vk
   }
 }
 
-/*ResourceBuffer::ResourceBuffer(ResourceBuffer &&other) noexcept
+ResourceBuffer::operator VkBuffer()
 {
-  _size = std::move(other._size);
-  _buffer = std::move(other._buffer);
-  _bufferMemory = std::move(other._bufferMemory);
-}*/
+  return _buffer;
+}
+
+ResourceBuffer::operator VkDeviceMemory()
+{
+  return _bufferMemory;
+}

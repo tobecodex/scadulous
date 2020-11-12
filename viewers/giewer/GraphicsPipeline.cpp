@@ -3,6 +3,8 @@
 #include <string>
 #include <stdexcept>
 
+#include "Vulkan.h"
+
 #include "Mesh.h"
 #include "Device.h"
 #include "SwapChain.h"
@@ -15,10 +17,8 @@ GraphicsPipeline::GraphicsPipeline(
   const SwapChain &swapChain, std::vector<VkDescriptorSetLayout> &descriptorSetLayouts
 )
 {
-  Device device;
-
-  ShaderModule vertShader(device, "shaders/shader.vert.spv");
-  ShaderModule fragShader(device, "shaders/shader.frag.spv");
+  ShaderModule vertShader(Vulkan::ctx().device(), "shaders/shader.vert.spv");
+  ShaderModule fragShader(Vulkan::ctx().device(), "shaders/shader.frag.spv");
 
   VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
   vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -123,7 +123,7 @@ GraphicsPipeline::GraphicsPipeline(
   pipelineLayoutInfo.pushConstantRangeCount = 1;
   pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
-  if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &_pipelineLayout) != VK_SUCCESS) {
+  if (vkCreatePipelineLayout(Vulkan::ctx().device(), &pipelineLayoutInfo, nullptr, &_pipelineLayout) != VK_SUCCESS) {
     throw std::runtime_error("failed to create pipeline layout!");
   }
 
@@ -149,7 +149,9 @@ GraphicsPipeline::GraphicsPipeline(
   pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
   pipelineInfo.basePipelineIndex = -1; // Optional
   
-  if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_graphicsPipeline) != VK_SUCCESS) {
+  if (vkCreateGraphicsPipelines(
+    Vulkan::ctx().device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_graphicsPipeline) != VK_SUCCESS
+  ) {
     throw std::runtime_error("failed to create graphics pipeline!");
   }
 }

@@ -30,6 +30,7 @@ public:
   ~Device();
 
   operator VkDevice() const;
+  operator VkPhysicalDevice() const;
 
   uint32_t graphicsFamily() const; 
   uint32_t presentationFamily() const;

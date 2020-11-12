@@ -16,7 +16,10 @@
 #include "Mesh.h"
 
 #include "Camera.h"
+#include "Device.h"
 #include "SwapChain.h"
+#include "CommandPool.h"
+#include "CommandBuffer.h"
 #include "ResourceBuffer.h"
 #include "DescriptorSet.h"
 #include "DescriptorPool.h"
@@ -57,6 +60,13 @@ Vulkan::~Vulkan()
   vkDestroyInstance(_instance, nullptr);
 }
 
+Vulkan &Vulkan::ctx() { return *_currentContext; }
+
+VkDevice Vulkan::device() const { return (VkDevice)(*_device); }
+VkInstance Vulkan::instance() const { return _instance; }
+VkSurfaceKHR Vulkan::surface() const { return _surface; }
+VkPhysicalDevice Vulkan::physicalDevice() const { return (VkPhysicalDevice)(*_device); }
+
 void Vulkan::setSurface(const VkSurfaceKHR &surface)
 {
   _surface = surface;
@@ -65,7 +75,7 @@ void Vulkan::setSurface(const VkSurfaceKHR &surface)
   createSwapChain();
   createGraphicsPipeline();
 
-  _camera = new Camera(_swapChain->extent().width, _swapChain->extent().height);
+  _camera = new Camera((float)_swapChain->extent().width, (float)_swapChain->extent().height);
 }
 
 Camera &Vulkan::camera()
@@ -100,25 +110,26 @@ void Vulkan::createGraphicsPipeline()
   }
 
   std::vector<VkDescriptorSetLayout> layouts(_swapChain->size(), _descriptorSetLayouts[0]);
-  _descriptorPool = new DescriptorPool(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, layouts.size());
+  _descriptorPool = new DescriptorPool(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (uint32_t)layouts.size());
   _descriptorSets = _descriptorPool->createDescriptorSets(layouts);
 
+  _cameraUniforms.reserve(_swapChain->size());
   for (int i = 0; i < _descriptorSets.size(); i++) {
 
     VkDescriptorBufferInfo bufferInfo{};
   
-    _cameraUniforms[i] = UniformBuffer(
+    _cameraUniforms.emplace_back(
       sizeof(ViewTransform), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
     );
 
-    //bufferInfo.buffer = _modelTransforms[i];
+    bufferInfo.buffer = _cameraUniforms[i];
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(glm::mat4);
 
     VkWriteDescriptorSet descriptorWrite{};
     descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrite.dstSet = _descriptorSets[i];
-    descriptorWrite.dstBinding = 1;
+    descriptorWrite.dstBinding = 0;
     descriptorWrite.dstArrayElement = 0;
     descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     descriptorWrite.descriptorCount = 1;
@@ -217,6 +228,10 @@ void Vulkan::draw()
   vkUnmapMemory(*_device, _cameraUniforms[imageIndex]);
 
   static unsigned int framesRendered = 0;
+  for (auto m : _meshes) {
+    m->transform(glm::rotate(m->transform(), 0.01f, glm::vec3(0,1,0)));
+  }
+
   framesRendered++;
 
   VkSubmitInfo submitInfo{};
@@ -229,8 +244,8 @@ void Vulkan::draw()
   submitInfo.pWaitDstStageMask = waitStages;
 
   submitInfo.commandBufferCount = 1;//_commandBuffers->size();
-  std::vector<VkCommandBuffer> buffers{_commandBuffers[imageIndex]};
-  submitInfo.pCommandBuffers = &buffers[0];
+  VkCommandBuffer buffer = _commandBuffers[imageIndex];
+  submitInfo.pCommandBuffers = &buffer;
 
   VkSemaphore signalSemaphores[] = { _renderFinishedSemaphore };
   submitInfo.signalSemaphoreCount = 1;
@@ -261,36 +276,37 @@ void Vulkan::addMesh(Mesh *m)
   m->createVertexBuffer();
   _meshes.push_back(m);
 
-  for (auto b : _commandBuffers) {
+  for (uint32_t i = 0; i < _swapChain->size(); i++) {
 
-    for (auto m : _meshes) {
+    CommandBuffer buffer = _commandBuffers[i];
+    buffer.beginRecording(i, *_swapChain, *_graphicsPipeline, _descriptorSets);
 
-      /*
-      buffer.beginRecording(i, *_swapChain, *_graphicsPipeline, _descriptorSets[i]);
-
-    vkCmdPushConstants(
-      commandBuffer,
-      pipelineLayout,
-      VK_SHADER_STAGE_VERTEX_BIT,
-      0,
-      sizeof(PrimitiveUniformObject),
-      &uniformData[i]
-    );
-
-    VkDescriptorSet descriptorSet = (*_descriptorSets)[i];
     vkCmdBindDescriptorSets(
       buffer, 
       VK_PIPELINE_BIND_POINT_GRAPHICS, 
       _graphicsPipeline->pipelineLayout(), 
-      0, 1, &descriptorSet, 
+      0, 1, (VkDescriptorSet *)&_descriptorSets[i], 
       0, nullptr
     );
- 
-    VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(buffer, 0, 1, buffers.data(), offsets);
-    vkCmdDraw(buffer, (uint32_t)mesh.vertices().size(), 1, 0, 0);
 
-    buffer.endRecording(); */
+    for (auto mesh : _meshes) {
+
+      // Custom drawing
+
+      vkCmdPushConstants(
+        buffer,
+        _graphicsPipeline->pipelineLayout(),
+        VK_SHADER_STAGE_VERTEX_BIT,
+        0,
+        sizeof(mesh->transform()),
+        &mesh->transform()
+      );
+
+      VkDeviceSize offsets[] = {0};
+      VkBuffer vkBuffer = mesh->vkBuffer();
+      vkCmdBindVertexBuffers(buffer, 0, 1, &vkBuffer, offsets);
+      vkCmdDraw(buffer, (uint32_t)mesh->vertices().size(), 1, 0, 0);
     }
+    buffer.endRecording(); 
   }
 }

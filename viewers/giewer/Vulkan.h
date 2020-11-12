@@ -12,7 +12,11 @@
 
 class Mesh;
 class Camera;
+class Device; 
+
 class SwapChain;
+
+class CommandPool;
 class CommandBuffer;
 
 class GraphicsPipeline;
@@ -21,12 +25,8 @@ class VertexBuffer;
 class UniformBuffer;
 
 class DescriptorSet;
+class DescriptorPool;
 class DescriptorSetLayout;
-
-#include "Device.h"
-#include "CommandPool.h"
-#include "CommandBuffer.h"
-#include "DescriptorPool.h"
 
 class Vulkan
 {

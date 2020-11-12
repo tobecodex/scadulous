@@ -16,12 +16,8 @@ public:
   ResourceBuffer(size_t size, VkBufferUsageFlagBits usageFlags, VkMemoryPropertyFlags memFlags);
 
   size_t size() const { return _size; }
-
-  //operator VkBuffer() const { return _buffer; }
-  operator VkDeviceMemory() const { return _bufferMemory; }
-
-  //VkBuffer VkBuffer() { return _buffer; }
-  //VkDeviceMemory VkDeviceMemory() { return _bufferMemory; }
+  operator VkBuffer();
+  operator VkDeviceMemory();
 };
 
 class VertexBuffer : public ResourceBuffer

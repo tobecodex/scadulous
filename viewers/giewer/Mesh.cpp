@@ -4,8 +4,13 @@
 #include <stdexcept>
 #include "ResourceBuffer.h"
 
-Mesh::Mesh(const std::vector<glm::vec3> &vertices) : _vertices(vertices)
+Mesh::Mesh(const std::vector<glm::vec3> &vertices) : _vertices(vertices), _transform(1.0f)
 {
+}
+
+VkBuffer Mesh::vkBuffer() const
+{
+  return (VkBuffer)*_vertexBuffer;
 }
 
 void Mesh::createVertexBuffer()
