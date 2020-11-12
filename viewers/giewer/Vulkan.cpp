@@ -41,6 +41,11 @@ Vulkan::Vulkan(
 
 Vulkan::~Vulkan()
 {
+  _quitting = true;
+  for (int i = 0; i < _threadPool.size(); i++) {
+    _threadPool[i].join();
+  }
+
   if (_camera) {
     delete _camera;
   }
@@ -142,9 +147,17 @@ void Vulkan::createGraphicsPipeline()
 
   _graphicsPipeline = new GraphicsPipeline(*_swapChain, _descriptorSetLayouts);
 
+  createFences();
   createSemaphores();
+  
   _commandPool = new CommandPool(_device->graphicsFamily());
   _commandBuffers = _commandPool->createCommandBuffers(_swapChain->size());
+
+  for (int i = 0; i < _swapChain->size(); i++) {
+    _threadPool.push_back(
+      std::thread(Vulkan::recordCommandBufferThread, std::pair<Vulkan *, uint32_t>(this, i))
+    );
+  }
 }
 
 bool Vulkan::checkValidationLayers(const std::vector<const char *> &validationLayers)
@@ -203,6 +216,19 @@ VkInstance Vulkan::createInstance(
   return instance;
 }
 
+void Vulkan::createFences()
+{
+  _fences.resize(_swapChain->size());
+  for (int i = 0; i < _fences.size(); i++) {
+      VkFenceCreateInfo fenceInfo{};
+
+      fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+      fenceInfo.pNext = nullptr;
+      fenceInfo.flags = 0;
+
+      vkCreateFence(*_device, &fenceInfo, nullptr, &_fences[i]);
+  }
+}
 
 void Vulkan::createSemaphores()
 {
@@ -218,6 +244,7 @@ void Vulkan::createSemaphores()
 void Vulkan::draw()
 {
   uint32_t imageIndex;
+  
   vkAcquireNextImageKHR(
     *_device, *_swapChain, UINT64_MAX, _imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex
   );
@@ -237,21 +264,19 @@ void Vulkan::draw()
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-  VkSemaphore waitSemaphores[] = { _imageAvailableSemaphore };
   VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
   submitInfo.waitSemaphoreCount = 1;
-  submitInfo.pWaitSemaphores = waitSemaphores;
+  submitInfo.pWaitSemaphores = &_imageAvailableSemaphore;
   submitInfo.pWaitDstStageMask = waitStages;
 
   submitInfo.commandBufferCount = 1;//_commandBuffers->size();
   VkCommandBuffer buffer = _commandBuffers[imageIndex];
   submitInfo.pCommandBuffers = &buffer;
 
-  VkSemaphore signalSemaphores[] = { _renderFinishedSemaphore };
   submitInfo.signalSemaphoreCount = 1;
-  submitInfo.pSignalSemaphores = signalSemaphores;
+  submitInfo.pSignalSemaphores = &_renderFinishedSemaphore;
 
-  if (vkQueueSubmit(_device->graphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+  if (vkQueueSubmit(_device->graphicsQueue(), 1, &submitInfo, _fences[imageIndex]) != VK_SUCCESS) {
     throw std::runtime_error("failed to submit draw command buffer!");
   }
 
@@ -259,7 +284,7 @@ void Vulkan::draw()
   presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
   presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores = signalSemaphores;
+  presentInfo.pWaitSemaphores = &_renderFinishedSemaphore;
 
   VkSwapchainKHR swapChains[] = { *_swapChain };
   presentInfo.swapchainCount = 1;
@@ -271,42 +296,59 @@ void Vulkan::draw()
   vkQueueWaitIdle(_device->presentationQueue());
 }
 
+void Vulkan::recordCommandBufferThread(std::pair<Vulkan *, uint32_t> args)
+{
+  Vulkan *self = args.first;
+  uint32_t idx = args.second;
+
+  while (!self->_quitting) {
+    self->recordCommandBuffer(idx);
+  }
+}
+
+void Vulkan::recordCommandBuffer(uint32_t idx)
+{
+  CommandBuffer buffer = _commandBuffers[idx];
+  buffer.beginRecording(idx, *_swapChain, *_graphicsPipeline, _descriptorSets);
+
+  vkCmdBindDescriptorSets(
+    buffer, 
+    VK_PIPELINE_BIND_POINT_GRAPHICS, 
+    _graphicsPipeline->pipelineLayout(), 
+    0, 1, (VkDescriptorSet *)&_descriptorSets[idx], 
+    0, nullptr
+  );
+
+  for (auto mesh : _meshes) {
+
+    // Custom drawing
+
+    vkCmdPushConstants(
+      buffer,
+      _graphicsPipeline->pipelineLayout(),
+      VK_SHADER_STAGE_VERTEX_BIT,
+      0,
+      sizeof(mesh->transform()),
+      &mesh->transform()
+    );
+
+    VkDeviceSize offsets[] = {0};
+    VkBuffer vkBuffer = mesh->vkBuffer();
+    vkCmdBindVertexBuffers(buffer, 0, 1, &vkBuffer, offsets);
+    vkCmdDraw(buffer, (uint32_t)mesh->vertices().size(), 1, 0, 0);
+  }
+  buffer.endRecording(); 
+
+  while (true) {
+    VkResult result = vkWaitForFences(*_device, 1, &_fences[idx], true, 1000000);
+    if (result == VK_SUCCESS) {
+      break;
+    }
+  }
+}
+
 void Vulkan::addMesh(Mesh *m)
 {
   m->createVertexBuffer();
   _meshes.push_back(m);
-
-  for (uint32_t i = 0; i < _swapChain->size(); i++) {
-
-    CommandBuffer buffer = _commandBuffers[i];
-    buffer.beginRecording(i, *_swapChain, *_graphicsPipeline, _descriptorSets);
-
-    vkCmdBindDescriptorSets(
-      buffer, 
-      VK_PIPELINE_BIND_POINT_GRAPHICS, 
-      _graphicsPipeline->pipelineLayout(), 
-      0, 1, (VkDescriptorSet *)&_descriptorSets[i], 
-      0, nullptr
-    );
-
-    for (auto mesh : _meshes) {
-
-      // Custom drawing
-
-      vkCmdPushConstants(
-        buffer,
-        _graphicsPipeline->pipelineLayout(),
-        VK_SHADER_STAGE_VERTEX_BIT,
-        0,
-        sizeof(mesh->transform()),
-        &mesh->transform()
-      );
-
-      VkDeviceSize offsets[] = {0};
-      VkBuffer vkBuffer = mesh->vkBuffer();
-      vkCmdBindVertexBuffers(buffer, 0, 1, &vkBuffer, offsets);
-      vkCmdDraw(buffer, (uint32_t)mesh->vertices().size(), 1, 0, 0);
-    }
-    buffer.endRecording(); 
-  }
 }

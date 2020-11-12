@@ -3,6 +3,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include <thread>
 #include <vector>
 #include <string>
 #include <optional>
@@ -37,10 +38,18 @@ private:
   VkInstance _instance;
   VkSurfaceKHR _surface;
   Device *_device = nullptr;
-  
+
+  void createFences();  
   void createSemaphores();
+
+  std::vector<VkFence> _fences;
   VkSemaphore _imageAvailableSemaphore;
   VkSemaphore _renderFinishedSemaphore;
+
+  bool _quitting = false;
+  std::vector<std::thread> _threadPool;
+  void recordCommandBuffer(uint32_t idx);
+  static void recordCommandBufferThread(std::pair<Vulkan *, uint32_t>);
 
   uint32_t _framesRendered = 0;
   std::vector<const char *> _extensions;
@@ -72,6 +81,7 @@ private:
 
   CommandPool *_commandPool = nullptr;
   std::vector<CommandBuffer> _commandBuffers;
+
 
 public:
 
