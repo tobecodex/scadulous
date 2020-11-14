@@ -16,6 +16,8 @@ public:
   Camera(float width, float height);
   ~Camera();
 
+  void setViewport(float w, float h);
+
   void forward(float s);
   void backward(float s);
 

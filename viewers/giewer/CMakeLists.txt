@@ -47,6 +47,8 @@ set(sources
   DescriptorSetLayout.cpp
   PhysicalDevice.cpp
   Logger.cpp
+  Metrics.cpp
+  State.cpp
 )
 
 add_executable(${CMAKE_PROJECT_NAME} ${sources} ${SHADER_SPV})
@@ -64,7 +66,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} ${Boost_LIBRARIES})
 target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(${CMAKE_PROJECT_NAME} ${VULKAN}/Lib/Vulkan-1.lib)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /MP")
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

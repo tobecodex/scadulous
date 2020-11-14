@@ -1,5 +1,6 @@
 #define GLFW_INCLUDE_VULKAN
 #include <glfw/glfw3.h>
+#include "glm/gtc/matrix_transform.hpp"
 
 #include <map>
 #include <iostream>
@@ -8,12 +9,10 @@
 #include "Mesh.h"
 #include "Vulkan.h"
 #include "Loader.h"
-#include "Camera.h"
 #include "SocketServer.h"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
-
 
 class VulkanApp : public SocketClient
 {
@@ -54,15 +53,22 @@ private:
       { -0.5, -0.5, 0.0 }
     };
 
-    Mesh *mesh = new Mesh(tri);
-    _vulkan->addMesh(mesh);
+    _vulkan->addMesh(new Mesh(tri));
+  }
+
+  void update()
+  {
+    auto meshes = _vulkan->state().meshes();
+    for (auto m : meshes) {
+      m->transform(glm::rotate(m->transform(), 0.0001f, glm::vec3(0, 1, 0)));
+    }
   }
 
   void mainLoop() 
   {
     while (!glfwWindowShouldClose(_window)) {
       glfwPollEvents();
-      _vulkan->draw();
+      update();
     }
   }
 
@@ -85,62 +91,62 @@ private:
       switch (key)
       {
         case GLFW_KEY_W : {
-          _vulkan->camera().forward(0.1f);
+          _vulkan->state().camera().forward(0.1f);
         }
         break;
 
         case GLFW_KEY_S : {
-          _vulkan->camera().backward(0.1f);
+          _vulkan->state().camera().backward(0.1f);
         }
         break;
 
         case GLFW_KEY_A : {
-          _vulkan->camera().left(0.1f);
+          _vulkan->state().camera().left(0.1f);
         }
         break;
    
         case GLFW_KEY_D : {
-          _vulkan->camera().right(0.1f);
+          _vulkan->state().camera().right(0.1f);
         }
         break;
 
         case GLFW_KEY_2 : {
-          _vulkan->camera().up(0.1f);
+          _vulkan->state().camera().up(0.1f);
         }
         break;
 
         case GLFW_KEY_X : {
-          _vulkan->camera().down(0.1f);
+          _vulkan->state().camera().down(0.1f);
         }
         break;
 
         case GLFW_KEY_Q : {
-          _vulkan->camera().yaw(-0.1f);
+          _vulkan->state().camera().yaw(-0.1f);
         }
         break;
 
         case GLFW_KEY_E : {
-          _vulkan->camera().yaw(0.1f);
+          _vulkan->state().camera().yaw(0.1f);
         }
         break;
 
         case GLFW_KEY_R : {
-          _vulkan->camera().pitch(-0.1f);
+          _vulkan->state().camera().pitch(-0.1f);
         }
         break;
 
         case GLFW_KEY_F : {
-          _vulkan->camera().pitch(0.1f);
+          _vulkan->state().camera().pitch(0.1f);
         }
         break;
 
         case GLFW_KEY_Z : {
-          _vulkan->camera().roll(-0.1f);
+          _vulkan->state().camera().roll(-0.1f);
         }
         break;
 
         case GLFW_KEY_C : {
-          _vulkan->camera().roll(0.1f);
+          _vulkan->state().camera().roll(0.1f);
         }
         break;
 
@@ -149,7 +155,7 @@ private:
         break;
 
         case GLFW_KEY_SPACE : {
-          _vulkan->camera().lookAt(0,0,0);
+          _vulkan->state().camera().lookAt(0,0,0);
         }
         break;
       }

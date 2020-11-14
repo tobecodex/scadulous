@@ -3,13 +3,14 @@
 
 #include <vulkan/vulkan.h>
 
+#include <map>
+#include <mutex>
+#include <queue>
 #include <thread>
 #include <vector>
 #include <string>
-#include <optional>
 
-#define GLM_FORCE_RADIANS
-#include <glm/glm.hpp>
+#include "State.h"
 
 class Mesh;
 class Camera;
@@ -33,6 +34,8 @@ class Vulkan
 {
 private:
 
+  State _state;
+
   static Vulkan *_currentContext;
 
   VkInstance _instance;
@@ -43,15 +46,14 @@ private:
   void createSemaphores();
 
   std::vector<VkFence> _fences;
-  VkSemaphore _imageAvailableSemaphore;
-  VkSemaphore _renderFinishedSemaphore;
+  std::queue<std::pair<VkSemaphore, VkSemaphore>> _semaphores;
 
   bool _quitting = false;
   std::vector<std::thread> _threadPool;
   void recordCommandBuffer(uint32_t idx);
-  static void recordCommandBufferThread(std::pair<Vulkan *, uint32_t>);
+  static void renderThread(Vulkan *self);
 
-  uint32_t _framesRendered = 0;
+  uint64_t _framesRendered = 0;
   std::vector<const char *> _extensions;
   std::vector<const char *> _validationLayers;
 
@@ -72,16 +74,12 @@ private:
 
   static bool checkValidationLayers(const std::vector<const char *> &validationLayers);
 
-  Camera *_camera = nullptr;
-
   std::vector<UniformBuffer> _cameraUniforms;
 
-  std::vector<Mesh *> _meshes;
   VertexBuffer *createVertexBuffer(const std::vector<glm::vec3> &vertices);
 
-  CommandPool *_commandPool = nullptr;
-  std::vector<CommandBuffer> _commandBuffers;
-
+  std::vector<CommandPool> _commandPools;
+  std::vector<std::vector<CommandBuffer>> _commandBuffers;
 
 public:
 
@@ -104,8 +102,9 @@ public:
   void setSurface(const VkSurfaceKHR &);
 
   void draw();
+
+  State &state();
   void addMesh(Mesh *);
-  Camera &camera();
 
   void addVertexShader(const std::string &path);
   void addFragmentShader(const std::string &path);

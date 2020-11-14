@@ -7,10 +7,6 @@
 #include <algorithm>
 #include <direct.h>
 
-#define GLM_FORCE_RADIANS
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
 #include <chrono>
 
 #include "Mesh.h"
@@ -27,6 +23,8 @@
 #include "DescriptorSetLayout.h"
 #include "GraphicsPipeline.h"
 
+#include "Metrics.h"
+
 Vulkan *Vulkan::_currentContext = nullptr;
 
 Vulkan::Vulkan(
@@ -34,7 +32,6 @@ Vulkan::Vulkan(
   const std::vector<const char *> &validationLayers
 ) : _extensions(extensions), _validationLayers(validationLayers)
 {
-
   _instance = createInstance(_extensions, _validationLayers);
   _currentContext = this;
 }
@@ -46,12 +43,12 @@ Vulkan::~Vulkan()
     _threadPool[i].join();
   }
 
-  if (_camera) {
-    delete _camera;
+  while (_semaphores.size()) {
+    auto &s = _semaphores.front();
+    vkDestroySemaphore(*_device, s.first, nullptr);
+    vkDestroySemaphore(*_device, s.second, nullptr);
+    _semaphores.pop();
   }
-
-  vkDestroySemaphore(*_device, _imageAvailableSemaphore, nullptr);
-  vkDestroySemaphore(*_device, _renderFinishedSemaphore, nullptr);
 
   for (auto layout : _descriptorSetLayouts) {
     vkDestroyDescriptorSetLayout(*_device, layout, nullptr);
@@ -80,12 +77,7 @@ void Vulkan::setSurface(const VkSurfaceKHR &surface)
   createSwapChain();
   createGraphicsPipeline();
 
-  _camera = new Camera((float)_swapChain->extent().width, (float)_swapChain->extent().height);
-}
-
-Camera &Vulkan::camera()
-{
-  return *_camera;
+  _state.camera().setViewport((float)_swapChain->extent().width, (float)_swapChain->extent().height);
 }
 
 void Vulkan::createSwapChain()
@@ -149,15 +141,16 @@ void Vulkan::createGraphicsPipeline()
 
   createFences();
   createSemaphores();
-  
-  _commandPool = new CommandPool(_device->graphicsFamily());
-  _commandBuffers = _commandPool->createCommandBuffers(_swapChain->size());
 
-  for (int i = 0; i < _swapChain->size(); i++) {
-    _threadPool.push_back(
-      std::thread(Vulkan::recordCommandBufferThread, std::pair<Vulkan *, uint32_t>(this, i))
-    );
+  _commandPools.reserve(_swapChain->size());
+  _commandBuffers.reserve(_swapChain->size());
+
+  for (uint32_t i = 0; i < _swapChain->size(); i++) {
+    _commandPools.emplace_back(_device->graphicsFamily());
+    _commandBuffers.emplace_back(_commandPools[i].createCommandBuffers(1));
   }
+
+  _threadPool.push_back(std::thread(Vulkan::renderThread, this));
 }
 
 bool Vulkan::checkValidationLayers(const std::vector<const char *> &validationLayers)
@@ -224,7 +217,7 @@ void Vulkan::createFences()
 
       fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
       fenceInfo.pNext = nullptr;
-      fenceInfo.flags = 0;
+      fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
       vkCreateFence(*_device, &fenceInfo, nullptr, &_fences[i]);
   }
@@ -235,47 +228,51 @@ void Vulkan::createSemaphores()
   VkSemaphoreCreateInfo semaphoreInfo{};
   semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-  if (vkCreateSemaphore(*_device, &semaphoreInfo, nullptr, &_imageAvailableSemaphore) != VK_SUCCESS ||
-      vkCreateSemaphore(*_device, &semaphoreInfo, nullptr, &_renderFinishedSemaphore) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create semaphores!");
+  for (int i = 0; i < (int)_swapChain->size(); i++) {
+    VkSemaphore s1, s2;
+    if (vkCreateSemaphore(*_device, &semaphoreInfo, nullptr, &s1) != VK_SUCCESS) {
+      throw std::runtime_error("failed to create semaphores!");
+    }
+    if (vkCreateSemaphore(*_device, &semaphoreInfo, nullptr, &s2) != VK_SUCCESS) {
+      throw std::runtime_error("failed to create semaphores!");
+    }
+    _semaphores.push({s1,s2});
   }
 }
 
 void Vulkan::draw()
 {
   uint32_t imageIndex;
-  
+
+  auto &s = _semaphores.front();
+  VkSemaphore &imageAvailable = s.first, &bufferComplete = s.second;
+
   vkAcquireNextImageKHR(
-    *_device, *_swapChain, UINT64_MAX, _imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex
+    *_device, *_swapChain, UINT64_MAX, imageAvailable, VK_NULL_HANDLE, &imageIndex
   );
 
-  void* data;
-  vkMapMemory(*_device, _cameraUniforms[imageIndex], 0, sizeof(ViewTransform), 0, &data);
-  memcpy(data, &_camera->transform(), sizeof(ViewTransform));
-  vkUnmapMemory(*_device, _cameraUniforms[imageIndex]);
+  _semaphores.push(_semaphores.front());
+  _semaphores.pop();
 
-  static unsigned int framesRendered = 0;
-  for (auto m : _meshes) {
-    m->transform(glm::rotate(m->transform(), 0.01f, glm::vec3(0,1,0)));
-  }
+  vkWaitForFences(*_device, 1, &_fences[imageIndex], true, UINT64_MAX);
 
-  framesRendered++;
+  recordCommandBuffer(imageIndex);
 
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
   VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
   submitInfo.waitSemaphoreCount = 1;
-  submitInfo.pWaitSemaphores = &_imageAvailableSemaphore;
+  submitInfo.pWaitSemaphores = &imageAvailable;
   submitInfo.pWaitDstStageMask = waitStages;
 
-  submitInfo.commandBufferCount = 1;//_commandBuffers->size();
-  VkCommandBuffer buffer = _commandBuffers[imageIndex];
-  submitInfo.pCommandBuffers = &buffer;
+  submitInfo.commandBufferCount = (uint32_t)_commandBuffers[imageIndex].size();
+  submitInfo.pCommandBuffers = (VkCommandBuffer *)_commandBuffers[imageIndex].data();
 
   submitInfo.signalSemaphoreCount = 1;
-  submitInfo.pSignalSemaphores = &_renderFinishedSemaphore;
+  submitInfo.pSignalSemaphores = &bufferComplete;
 
+  vkResetFences(*_device, 1, &_fences[imageIndex]);
   if (vkQueueSubmit(_device->graphicsQueue(), 1, &submitInfo, _fences[imageIndex]) != VK_SUCCESS) {
     throw std::runtime_error("failed to submit draw command buffer!");
   }
@@ -284,7 +281,7 @@ void Vulkan::draw()
   presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
   presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores = &_renderFinishedSemaphore;
+  presentInfo.pWaitSemaphores = &bufferComplete;
 
   VkSwapchainKHR swapChains[] = { *_swapChain };
   presentInfo.swapchainCount = 1;
@@ -293,35 +290,42 @@ void Vulkan::draw()
   presentInfo.pResults = nullptr; // Optional
 
   vkQueuePresentKHR(_device->presentationQueue(), &presentInfo);
-  vkQueueWaitIdle(_device->presentationQueue());
-}
 
-void Vulkan::recordCommandBufferThread(std::pair<Vulkan *, uint32_t> args)
-{
-  Vulkan *self = args.first;
-  uint32_t idx = args.second;
-
-  while (!self->_quitting) {
-    self->recordCommandBuffer(idx);
+  metrics()["frames"]++;
+  if (metrics()["frames"] % 10000 == 0) {
+    dumpMetrics();
+    metrics()["frames"] = 0;
   }
 }
 
-void Vulkan::recordCommandBuffer(uint32_t idx)
+void Vulkan::renderThread(Vulkan *self)
 {
-  CommandBuffer buffer = _commandBuffers[idx];
-  buffer.beginRecording(idx, *_swapChain, *_graphicsPipeline, _descriptorSets);
+  while (!self->_quitting) {
+    self->draw();
+  }
+}
+
+void Vulkan::recordCommandBuffer(uint32_t imageIndex)
+{
+  CommandBuffer buffer = _commandBuffers[imageIndex].front();
+  buffer.beginRecording(imageIndex, *_swapChain, *_graphicsPipeline, _descriptorSets);
 
   vkCmdBindDescriptorSets(
     buffer, 
     VK_PIPELINE_BIND_POINT_GRAPHICS, 
     _graphicsPipeline->pipelineLayout(), 
-    0, 1, (VkDescriptorSet *)&_descriptorSets[idx], 
+    0, 1, (VkDescriptorSet *)&_descriptorSets[imageIndex], 
     0, nullptr
   );
 
-  for (auto mesh : _meshes) {
+  _state.lock();
+ 
+  void* data;
+  vkMapMemory(*_device, _cameraUniforms[imageIndex], 0, sizeof(ViewTransform), 0, &data);
+  memcpy(data, &_state.camera().transform(), sizeof(ViewTransform));
+  vkUnmapMemory(*_device, _cameraUniforms[imageIndex]);
 
-    // Custom drawing
+  for (auto mesh : _state.meshes()) {
 
     vkCmdPushConstants(
       buffer,
@@ -337,18 +341,18 @@ void Vulkan::recordCommandBuffer(uint32_t idx)
     vkCmdBindVertexBuffers(buffer, 0, 1, &vkBuffer, offsets);
     vkCmdDraw(buffer, (uint32_t)mesh->vertices().size(), 1, 0, 0);
   }
-  buffer.endRecording(); 
 
-  while (true) {
-    VkResult result = vkWaitForFences(*_device, 1, &_fences[idx], true, 1000000);
-    if (result == VK_SUCCESS) {
-      break;
-    }
-  }
+  buffer.endRecording(); 
+  _state.unlock();
+}
+
+State &Vulkan::state() 
+{
+  return _state;
 }
 
 void Vulkan::addMesh(Mesh *m)
 {
   m->createVertexBuffer();
-  _meshes.push_back(m);
+  _state.meshes().push_back(m);
 }

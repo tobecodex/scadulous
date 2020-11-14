@@ -14,7 +14,7 @@ private:
 public:
   CommandPool(uint32_t queueFamily);
   CommandPool(CommandPool &&other) = default;
-
+  CommandPool &operator=(CommandPool &&) = default;
   ~CommandPool();
 
   std::vector<CommandBuffer> createCommandBuffers(uint32_t numBuffers);

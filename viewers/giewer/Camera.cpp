@@ -4,19 +4,24 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/rotate_vector.hpp"
 
-Camera::Camera(float width, float height) : _width(width), _height(height)
+Camera::Camera(float width, float height) 
 {
   _pos = { 0, 0, -1 };
   _ahead = { 0, 0, 1 };
   _up = { 0, 1, 0 };
 
-  //_transform._model = glm::mat4(1.0f);
-  _transform._proj = glm::perspective(glm::radians(45.0f), _width / (float)_height, 0.1f, 10.0f);
-  _transform._proj[1][1] *= -1;
+  setViewport(width, height);
 }
 
 Camera::~Camera()
 {
+}
+
+void Camera::setViewport(float w, float h)
+{
+  _width = w; _height = h;
+  _transform._proj = glm::perspective(glm::radians(45.0f), _width / (float)_height, 0.1f, 10.0f);
+  _transform._proj[1][1] *= -1;
 }
 
 const ViewTransform &Camera::transform()
