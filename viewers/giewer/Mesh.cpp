@@ -79,6 +79,13 @@ LitMesh::LitMesh(const std::vector<glm::vec3> &vertices)
   for (int i = 0; i < vertices.size(); i++) {
     _vertices[i]._vertex = vertices[i];
   }
+
+  for (int i = 0; i < vertices.size(); i += 3) {
+    glm::vec3 k = vertices[i + 1] - vertices[i];
+    glm::vec3 l = vertices[i + 2] - vertices[i];
+    glm::vec3 n = glm::normalize(glm::cross(k, l));
+    _vertices[i]._normal = _vertices[i + 1]._normal = _vertices[i + 2]._normal = n;
+  }
 }
 
 void LitMesh::createVertexBuffer()

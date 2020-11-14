@@ -17,5 +17,9 @@ layout(location = 0) out vec3 fragColor;
 
 void main() {
   gl_Position = v.proj * v.view * m.model * vec4(vertex, 1.0);
-  fragColor = vec3(1.0, 1.0, 0.0);
+
+  vec4 n = m.model * vec4(normal, 1.0);
+  vec3 colour = vec3(0.75, 0.75, 0.0);
+  float diffuse = dot(vec4(-1, 0, 0, 0.75), n);
+  fragColor = colour * diffuse;
 }
