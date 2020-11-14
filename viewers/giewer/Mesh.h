@@ -26,6 +26,7 @@ public:
 class Mesh
 {
 protected:
+  Mesh();
   glm::mat4 _transform;
   VertexBuffer *_vertexBuffer = nullptr;
 

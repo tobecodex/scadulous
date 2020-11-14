@@ -12,7 +12,7 @@ layout(push_constant) uniform Model
 } m;
 
 layout(location = 0) in vec3 vertex;
-//layout(location = 1) in vec3 normal;
+layout(location = 1) in vec3 normal;
 layout(location = 0) out vec3 fragColor;
 
 void main() {

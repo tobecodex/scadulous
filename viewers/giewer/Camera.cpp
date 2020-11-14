@@ -6,8 +6,8 @@
 
 Camera::Camera(float width, float height) 
 {
-  _pos = { 0, 0, -1 };
-  _ahead = { 0, 0, 1 };
+  _pos = { 0, 0, 1 };
+  _ahead = { 0, 0, -1 };
   _up = { 0, 1, 0 };
 
   setViewport(width, height);

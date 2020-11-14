@@ -42,7 +42,7 @@ private:
     _vulkan->setSurface(surface);
 
     glfwSetKeyCallback(_window, handleKeyboardInput);
-    createGeometry();   
+    //createGeometry();   
   }
 
   void createGeometry()
@@ -59,9 +59,9 @@ private:
   void update()
   {
     auto meshes = _vulkan->state().meshes();
-    for (auto m : meshes) {
-      m->transform(glm::rotate(m->transform(), 0.0001f, glm::vec3(0, 1, 0)));
-    }
+    //for (auto m : meshes) {
+    //  m->transform(glm::rotate(m->transform(), 0.0001f, glm::vec3(0, 1, 0)));
+    //}
   }
 
   void mainLoop() 

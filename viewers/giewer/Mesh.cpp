@@ -39,6 +39,10 @@ std::vector<VkVertexInputAttributeDescription> &LitVertex::getVertexAttributeDes
   return attributeDescriptions;
 }
 
+Mesh::Mesh() : _transform(1.0f)
+{
+}
+
 VkBuffer Mesh::vkBuffer() const
 {
   return *_vertexBuffer;
@@ -46,10 +50,10 @@ VkBuffer Mesh::vkBuffer() const
 
 SimpleMesh::SimpleMesh(const std::vector<glm::vec3> &vertices) : _vertices(vertices)
 {
-  //_vertices.resize(vertices.size());
-  //for (int i = 0; i < vertices.size(); i++) {
-  //  _vertices[i]._vertex = vertices[i];
-  //}
+  /*_vertices.resize(vertices.size());
+  for (int i = 0; i < vertices.size(); i++) {
+    _vertices[i]._vertex = vertices[i];
+  }*/
 }
 
 void SimpleMesh::createVertexBuffer()
