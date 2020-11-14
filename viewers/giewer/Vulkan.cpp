@@ -339,7 +339,7 @@ void Vulkan::recordCommandBuffer(uint32_t imageIndex)
     VkDeviceSize offsets[] = {0};
     VkBuffer vkBuffer = mesh->vkBuffer();
     vkCmdBindVertexBuffers(buffer, 0, 1, &vkBuffer, offsets);
-    vkCmdDraw(buffer, (uint32_t)mesh->vertices().size(), 1, 0, 0);
+    vkCmdDraw(buffer, mesh->count(), 1, 0, 0);
   }
 
   buffer.endRecording(); 

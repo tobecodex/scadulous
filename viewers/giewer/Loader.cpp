@@ -37,26 +37,19 @@ Loader::Loader()
     }
 }*/
 
-static Mesh* mesh_from_verts(unsigned int tri_count, std::vector<glm::vec3>& verts)
-{
-  return new Mesh(verts);
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 
-Mesh* Loader::load_stl(const std::string &filename)
+std::vector<glm::vec3> Loader::load_stl(const std::string &filename)
 {
   std::ifstream file(filename, std::ifstream::in);
-  if (file.fail())
-  {
-    std::cerr << "Missing/bad file: ";
-    return NULL;
+  if (file.fail()) {
+    throw std::runtime_error("missing/bad file: ");
   }
 
   return load_stl(file);
 }
 
-Mesh *Loader::load_stl(std::istream &input)
+std::vector<glm::vec3> Loader::load_stl(std::istream &input)
 {
   const int HEADER_LEN(5);
   char header[HEADER_LEN + 1];
@@ -89,8 +82,9 @@ Mesh *Loader::load_stl(std::istream &input)
   return read_stl_binary(input);
 }
 
-Mesh* Loader::read_stl_binary(std::istream &input)
+std::vector<glm::vec3> Loader::read_stl_binary(std::istream &input)
 {
+  return {};
     /*QDataStream data(&file);
     data.setByteOrder(QDataStream::LittleEndian);
     data.setFloatingPointPrecision(QDataStream::SinglePrecision);
@@ -135,10 +129,9 @@ Mesh* Loader::read_stl_binary(std::istream &input)
     }
 
     return mesh_from_verts(tri_count, verts);*/
-    return NULL;
 }
 
-Mesh* Loader::read_stl_ascii(std::istream &input)
+std::vector<glm::vec3> Loader::read_stl_ascii(std::istream &input)
 {
   auto nextLine = [&input]() -> std::string {
     std::string line;
@@ -214,12 +207,12 @@ Mesh* Loader::read_stl_ascii(std::istream &input)
 
   if (okay)
   {
-      return mesh_from_verts(tri_count, verts);
+      return verts;
   }
   else
   {
       //emit error_bad_stl();
-      return NULL;
+      return {};
   }
 }
 

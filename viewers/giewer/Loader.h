@@ -3,21 +3,20 @@
 
 #include <vector>
 #include <string>
-
-#include "Mesh.h"
+#include <glm/vec3.hpp>
 
 class Loader
 {
 public:
     Loader();
 
-    Mesh* load_stl(std::istream &);
-    Mesh* load_stl(const std::string &);
+    std::vector<glm::vec3> load_stl(std::istream &);
+    std::vector<glm::vec3> load_stl(const std::string &);
 
 protected:
 
-    Mesh* read_stl_ascii(std::istream &);
-    Mesh* read_stl_binary(std::istream &);
+    std::vector<glm::vec3> read_stl_ascii(std::istream &);
+    std::vector<glm::vec3> read_stl_binary(std::istream &);
 
 private:
     const std::string _filename;

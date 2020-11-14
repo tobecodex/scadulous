@@ -2,32 +2,63 @@
 #define __MESH_H
 
 #include <vector>
-#include <optional>
-
 #include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
+#include "vulkan/vulkan.h"
 
-#include "ResourceBuffer.h"
+class VertexBuffer;
+
+class SimpleVertex
+{
+public:
+  glm::vec3 _vertex;
+  static std::vector<VkVertexInputBindingDescription> &getVertexBindingDescriptions();
+  static std::vector<VkVertexInputAttributeDescription> &getVertexAttributeDescriptions();
+};
+
+class LitVertex : public SimpleVertex
+{
+public:
+  glm::vec3 _normal;
+  static std::vector<VkVertexInputBindingDescription> &getVertexBindingDescriptions();
+  static std::vector<VkVertexInputAttributeDescription> &getVertexAttributeDescriptions();
+};
 
 class Mesh
 {
-private:
+protected:
   glm::mat4 _transform;
-  std::vector<glm::vec3> _vertices;
   VertexBuffer *_vertexBuffer = nullptr;
 
 public:
-  Mesh(const std::vector<glm::vec3> &vertices);
-
   void transform(glm::mat4 &t) { _transform = t; }
   const glm::mat4 &transform() const { return _transform; }
-  const std::vector<glm::vec3> &vertices() const { return _vertices; }
-
-  static VkVertexInputBindingDescription getVertexBindingDescription();
-  static VkVertexInputAttributeDescription getVertexAttributeDescription();
   
-  void createVertexBuffer();
+  virtual uint32_t count() = 0;
+  virtual void createVertexBuffer() = 0;
+
   VkBuffer vkBuffer() const;
+};
+
+class SimpleMesh : public Mesh
+{
+private:
+  std::vector<glm::vec3> _vertices;
+
+public:
+  SimpleMesh(const std::vector<glm::vec3> &vertices);
+  virtual uint32_t count() { return (uint32_t)_vertices.size(); }
+  virtual void createVertexBuffer();
+};
+
+class LitMesh : public Mesh
+{
+private:
+  std::vector<LitVertex> _vertices;
+
+public:
+  LitMesh(const std::vector<glm::vec3> &vertices);
+  virtual uint32_t count() { return (uint32_t)_vertices.size(); }
+  virtual void createVertexBuffer();
 };
 
 #endif

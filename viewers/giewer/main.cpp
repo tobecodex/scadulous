@@ -53,7 +53,7 @@ private:
       { -0.5, -0.5, 0.0 }
     };
 
-    _vulkan->addMesh(new Mesh(tri));
+    _vulkan->addMesh(new SimpleMesh(tri));
   }
 
   void update()
@@ -192,9 +192,8 @@ public:
     Loader loader;
     std::string str(std::istreambuf_iterator<char>(s), {});
     std::istringstream inp(str);
-    Mesh *m = loader.load_stl(inp);
     if (_vulkan) {
-      _vulkan->addMesh(m);
+      _vulkan->addMesh(new LitMesh(loader.load_stl(inp)));
     }
   }
 

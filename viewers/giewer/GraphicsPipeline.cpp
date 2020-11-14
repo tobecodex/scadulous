@@ -36,10 +36,10 @@ GraphicsPipeline::GraphicsPipeline(
 
   VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
   vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  vertexInputInfo.vertexBindingDescriptionCount = 1;
-  vertexInputInfo.pVertexBindingDescriptions = &Mesh::getVertexBindingDescription();
-  vertexInputInfo.vertexAttributeDescriptionCount = 1;
-  vertexInputInfo.pVertexAttributeDescriptions = &Mesh::getVertexAttributeDescription();
+  vertexInputInfo.vertexBindingDescriptionCount = (uint32_t)SimpleVertex::getVertexBindingDescriptions().size();
+  vertexInputInfo.pVertexBindingDescriptions = SimpleVertex::getVertexBindingDescriptions().data();
+  vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)SimpleVertex::getVertexAttributeDescriptions().size();
+  vertexInputInfo.pVertexAttributeDescriptions = SimpleVertex::getVertexAttributeDescriptions().data();
 
   VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
   inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

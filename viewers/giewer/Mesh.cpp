@@ -4,18 +4,57 @@
 #include <stdexcept>
 #include "ResourceBuffer.h"
 
-Mesh::Mesh(const std::vector<glm::vec3> &vertices) : _vertices(vertices), _transform(1.0f)
+std::vector<VkVertexInputBindingDescription> &SimpleVertex::getVertexBindingDescriptions()
 {
+  static std::vector<VkVertexInputBindingDescription> bindingDescriptions { 
+    { 0, sizeof(SimpleVertex), VK_VERTEX_INPUT_RATE_VERTEX }
+  };
+  return bindingDescriptions;
+}
+
+
+std::vector<VkVertexInputAttributeDescription> &SimpleVertex::getVertexAttributeDescriptions()
+{
+  static std::vector<VkVertexInputAttributeDescription> attributeDescriptions {
+    { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SimpleVertex, _vertex) }
+  };
+
+  return attributeDescriptions;
+}
+
+std::vector<VkVertexInputBindingDescription> &LitVertex::getVertexBindingDescriptions()
+{
+  static std::vector<VkVertexInputBindingDescription> bindingDescriptions { 
+    { 0, sizeof(LitVertex), VK_VERTEX_INPUT_RATE_VERTEX } 
+  };
+  return bindingDescriptions;
+}
+
+std::vector<VkVertexInputAttributeDescription> &LitVertex::getVertexAttributeDescriptions()
+{
+  static std::vector<VkVertexInputAttributeDescription> attributeDescriptions {
+    { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(LitVertex, _vertex) },
+    { 1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(LitVertex, _normal) }
+  };
+  return attributeDescriptions;
 }
 
 VkBuffer Mesh::vkBuffer() const
 {
-  return (VkBuffer)*_vertexBuffer;
+  return *_vertexBuffer;
 }
 
-void Mesh::createVertexBuffer()
+SimpleMesh::SimpleMesh(const std::vector<glm::vec3> &vertices) : _vertices(vertices)
 {
-  size_t bufSize = sizeof(_vertices[0]) * _vertices.size();
+  //_vertices.resize(vertices.size());
+  //for (int i = 0; i < vertices.size(); i++) {
+  //  _vertices[i]._vertex = vertices[i];
+  //}
+}
+
+void SimpleMesh::createVertexBuffer()
+{
+  size_t bufSize = sizeof(SimpleVertex) * _vertices.size();
 
   _vertexBuffer = new VertexBuffer(
     bufSize,
@@ -30,21 +69,28 @@ void Mesh::createVertexBuffer()
   vkUnmapMemory(Vulkan::ctx().device(), *_vertexBuffer);
 }
 
-VkVertexInputBindingDescription Mesh::getVertexBindingDescription()
+LitMesh::LitMesh(const std::vector<glm::vec3> &vertices)
 {
-  VkVertexInputBindingDescription bindingDescription;
-  bindingDescription.binding = 0;
-  bindingDescription.stride = sizeof(glm::vec3);
-  bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-  return bindingDescription;
+  _vertices.resize(vertices.size());
+  for (int i = 0; i < vertices.size(); i++) {
+    _vertices[i]._vertex = vertices[i];
+  }
 }
 
-VkVertexInputAttributeDescription Mesh::getVertexAttributeDescription() 
+void LitMesh::createVertexBuffer()
 {
-    VkVertexInputAttributeDescription attributeDescription;
-    attributeDescription.binding = 0;
-    attributeDescription.location = 0;
-    attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescription.offset = 0;
-    return attributeDescription;
+  size_t bufSize = sizeof(LitVertex) * _vertices.size();
+
+  _vertexBuffer = new VertexBuffer(
+    bufSize,
+    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+  );
+
+  void* data;
+  if (vkMapMemory(Vulkan::ctx().device(), *_vertexBuffer, 0, bufSize, 0, &data) != VK_SUCCESS) {
+    throw std::runtime_error("failed to map vertex buffer!");
+  }
+  memcpy(data, _vertices.data(), bufSize);
+  vkUnmapMemory(Vulkan::ctx().device(), *_vertexBuffer);
 }
+
