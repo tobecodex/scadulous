@@ -13,7 +13,7 @@ set(GLFW ${CMAKE_SOURCE_DIR}/glfw)
 set(VULKAN "C:\\VulkanSDK\\1.2.141.2")
 set(GLSLC "${VULKAN}\\Bin\\glslc.exe")
 set(SHADER_DIR "${CMAKE_SOURCE_DIR}/shaders")
-file(GLOB SHADERS ${SHADER_DIR}/*.vert ${SHADER_DIR}/*.frag)
+file(GLOB SHADERS ${SHADER_DIR}/*.vert ${SHADER_DIR}/*.frag ${SHADER_DIR}/*.geom)
 message(${SHADERS})
 
 set(SHADER_SPV, [])
@@ -49,6 +49,7 @@ set(sources
   Logger.cpp
   Metrics.cpp
   State.cpp
+  ShaderModule.cpp
 )
 
 add_executable(${CMAKE_PROJECT_NAME} ${sources} ${SHADER_SPV})

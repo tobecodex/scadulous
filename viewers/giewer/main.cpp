@@ -61,7 +61,7 @@ private:
     _vulkan->state().lock();
     auto meshes = _vulkan->state().meshes();
     for (auto m : meshes) {
-      m->transform(glm::rotate(m->transform(), 0.0001f, glm::vec3(0, 1, 0)));
+      //m->transform(glm::rotate(m->transform(), 0.0001f, glm::vec3(0, 1, 0)));
     }
     _vulkan->state().unlock();
   }

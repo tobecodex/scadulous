@@ -66,6 +66,8 @@ private:
   SwapChain *_swapChain = nullptr;
 
   GraphicsPipeline *_graphicsPipeline  = nullptr;
+  GraphicsPipeline *_debugPipeline = nullptr;
+
   void createGraphicsPipeline();
 
   DescriptorPool *_descriptorPool = nullptr;

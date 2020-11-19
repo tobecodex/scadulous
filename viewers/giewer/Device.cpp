@@ -111,6 +111,7 @@ void Device::createLogicalDevice(const std::vector<uint32_t> &queueFamilies)
 { 
   VkDeviceCreateInfo createInfo{};
   VkPhysicalDeviceFeatures deviceFeatures{};
+  deviceFeatures.geometryShader = true;
   std::vector<const char *> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

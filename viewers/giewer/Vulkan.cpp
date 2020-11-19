@@ -138,6 +138,18 @@ void Vulkan::createGraphicsPipeline()
   }
 
   _graphicsPipeline = new GraphicsPipeline(*_swapChain, _descriptorSetLayouts);
+  _graphicsPipeline->addPushConstantRange();
+  _graphicsPipeline->addShaderStage("shaders/shader.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+  _graphicsPipeline->addShaderStage("shaders/shader.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+  _graphicsPipeline->createLayout();
+  _graphicsPipeline->createPipeline(_swapChain->renderPass());
+
+  //_debugPipeline = new GraphicsPipeline(*_swapChain, _descriptorSetLayouts);
+  //_graphicsPipeline->addShaderStage("shaders/shader.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+  //_graphicsPipeline->addShaderStage("shaders/shader.geom.spv", VK_SHADER_STAGE_VERTEX_BIT);
+  //_graphicsPipeline->addShaderStage("shaders/shader.frag.spv", VK_SHADER_STAGE_VERTEX_BIT);
+  //_graphicsPipeline->createLayout();
+  //_graphicsPipeline->createPipeline();
 
   createFences();
   createSemaphores();
