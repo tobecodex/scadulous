@@ -4,7 +4,7 @@
 
 #include <stdexcept>
 
-void CommandBuffer::beginRecording(int idx, SwapChain &swapChain, GraphicsPipeline &graphicsPipeline, std::vector<DescriptorSet> &descriptorSets)
+void CommandBuffer::beginRecording()
 {
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -14,8 +14,11 @@ void CommandBuffer::beginRecording(int idx, SwapChain &swapChain, GraphicsPipeli
   if (vkBeginCommandBuffer(_commandBuffer, &beginInfo) != VK_SUCCESS) {
     throw std::runtime_error("failed to begin recording command buffer!");
   }
+}
 
-  VkFramebuffer frameBuffer = swapChain.frameBuffers()[idx];
+void CommandBuffer::beginRenderPass(uint32_t imageIndex, SwapChain &swapChain)
+{
+  VkFramebuffer frameBuffer = swapChain.frameBuffers()[imageIndex];
 
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -29,12 +32,15 @@ void CommandBuffer::beginRecording(int idx, SwapChain &swapChain, GraphicsPipeli
   renderPassInfo.pClearValues = &clearColor;
 
   vkCmdBeginRenderPass(_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-  vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+}
+
+void CommandBuffer::endRenderPass()
+{
+  vkCmdEndRenderPass(_commandBuffer);
 }
 
 void CommandBuffer::endRecording()
 {
-  vkCmdEndRenderPass(_commandBuffer);
 
   if (vkEndCommandBuffer(_commandBuffer) != VK_SUCCESS) {
     throw std::runtime_error("failed to record command buffer!");

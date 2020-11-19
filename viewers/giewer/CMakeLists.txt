@@ -49,7 +49,7 @@ set(sources
   Logger.cpp
   Metrics.cpp
   State.cpp
-  ShaderModule.cpp
+  CommandBufferPool.cpp
 )
 
 add_executable(${CMAKE_PROJECT_NAME} ${sources} ${SHADER_SPV})

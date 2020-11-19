@@ -156,6 +156,11 @@ private:
         }
         break;
 
+        case GLFW_KEY_N : {
+          _vulkan->toggleDebugDraw();
+        }
+        break;
+
         case GLFW_KEY_SPACE : {
           _vulkan->state().camera().lookAt(0,0,0);
         }

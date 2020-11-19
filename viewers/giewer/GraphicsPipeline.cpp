@@ -9,27 +9,9 @@
 #include "Mesh.h"
 #include "Device.h"
 #include "SwapChain.h"
-#include "ShaderModule.h"
 #include "DescriptorSet.h"
 #include "DescriptorPool.h"
 #include "DescriptorSetLayout.h"
-
-VkPipelineShaderStageCreateInfo GraphicsPipeline::createShaderStage(
-  const char *srcFile, VkShaderStageFlagBits stage
-)
-{
-  VkPipelineShaderStageCreateInfo shaderStageInfo{};
-
-  auto shader = new ShaderModule(srcFile);
-  _shaderModules.push_back(shader);
-
-  shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  shaderStageInfo.stage = stage;
-  shaderStageInfo.module = *shader;
-  shaderStageInfo.pName = "main";
-
-  return shaderStageInfo;
-}
 
 VkPipelineRasterizationStateCreateInfo createRasterizationState()
 {

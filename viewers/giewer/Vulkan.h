@@ -11,15 +11,13 @@
 #include <string>
 
 #include "State.h"
+#include "CommandBufferPool.h"
 
 class Mesh;
 class Camera;
 class Device; 
 
 class SwapChain;
-
-class CommandPool;
-class CommandBuffer;
 
 class GraphicsPipeline;
 
@@ -80,8 +78,8 @@ private:
 
   VertexBuffer *createVertexBuffer(const std::vector<glm::vec3> &vertices);
 
-  std::vector<CommandPool> _commandPools;
-  std::vector<std::vector<CommandBuffer>> _commandBuffers;
+  bool _debugDraw = false;
+  std::vector<CommandBufferPool> _commandBufferPools;
 
 public:
 
@@ -104,6 +102,7 @@ public:
   void setSurface(const VkSurfaceKHR &);
 
   void draw();
+  void toggleDebugDraw();
 
   State &state();
   void addMesh(Mesh *);

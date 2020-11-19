@@ -14,8 +14,11 @@ private:
   VkCommandBuffer _commandBuffer;
 
 public:
-  void beginRecording(int, SwapChain &, GraphicsPipeline &, std::vector<DescriptorSet> &);
+  void beginRecording();
   void endRecording();
+
+  void beginRenderPass(uint32_t imageIndex, SwapChain &);
+  void endRenderPass();
 
   operator VkCommandBuffer() { return _commandBuffer; }
 };

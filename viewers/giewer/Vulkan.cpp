@@ -144,22 +144,20 @@ void Vulkan::createGraphicsPipeline()
   _graphicsPipeline->createLayout();
   _graphicsPipeline->createPipeline(_swapChain->renderPass());
 
-  //_debugPipeline = new GraphicsPipeline(*_swapChain, _descriptorSetLayouts);
-  //_graphicsPipeline->addShaderStage("shaders/shader.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-  //_graphicsPipeline->addShaderStage("shaders/shader.geom.spv", VK_SHADER_STAGE_VERTEX_BIT);
-  //_graphicsPipeline->addShaderStage("shaders/shader.frag.spv", VK_SHADER_STAGE_VERTEX_BIT);
-  //_graphicsPipeline->createLayout();
-  //_graphicsPipeline->createPipeline();
-
+  _debugPipeline = new GraphicsPipeline(*_swapChain, _descriptorSetLayouts);
+  _debugPipeline->addPushConstantRange();
+  _debugPipeline->addShaderStage("shaders/shader.debug.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+  _debugPipeline->addShaderStage("shaders/shader.debug.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT);
+  _debugPipeline->addShaderStage("shaders/shader.debug.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+  _debugPipeline->createLayout();
+  _debugPipeline->createPipeline(_swapChain->renderPass());
+  
   createFences();
   createSemaphores();
 
-  _commandPools.reserve(_swapChain->size());
-  _commandBuffers.reserve(_swapChain->size());
-
-  for (uint32_t i = 0; i < _swapChain->size(); i++) {
-    _commandPools.emplace_back(_device->graphicsFamily());
-    _commandBuffers.emplace_back(_commandPools[i].createCommandBuffers(1));
+  _commandBufferPools.reserve(_swapChain->size());
+  for (size_t i = 0; i < _swapChain->size(); i++) {
+    _commandBufferPools.emplace_back(_device->graphicsFamily());
   }
 
   _threadPool.push_back(std::thread(Vulkan::renderThread, this));
@@ -252,6 +250,11 @@ void Vulkan::createSemaphores()
   }
 }
 
+void Vulkan::toggleDebugDraw()
+{
+  _debugDraw = !_debugDraw;
+}
+
 void Vulkan::draw()
 {
   uint32_t imageIndex;
@@ -267,6 +270,7 @@ void Vulkan::draw()
   _semaphores.pop();
 
   vkWaitForFences(*_device, 1, &_fences[imageIndex], true, UINT64_MAX);
+  _commandBufferPools[imageIndex].reset();
 
   recordCommandBuffer(imageIndex);
 
@@ -278,8 +282,8 @@ void Vulkan::draw()
   submitInfo.pWaitSemaphores = &imageAvailable;
   submitInfo.pWaitDstStageMask = waitStages;
 
-  submitInfo.commandBufferCount = (uint32_t)_commandBuffers[imageIndex].size();
-  submitInfo.pCommandBuffers = (VkCommandBuffer *)_commandBuffers[imageIndex].data();
+  submitInfo.commandBufferCount = (uint32_t)_commandBufferPools[imageIndex].inUse().size();
+  submitInfo.pCommandBuffers = (VkCommandBuffer *)_commandBufferPools[imageIndex].inUse().data();
 
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = &bufferComplete;
@@ -317,45 +321,96 @@ void Vulkan::renderThread(Vulkan *self)
   }
 }
 
+
 void Vulkan::recordCommandBuffer(uint32_t imageIndex)
 {
-  CommandBuffer buffer = _commandBuffers[imageIndex].front();
-  buffer.beginRecording(imageIndex, *_swapChain, *_graphicsPipeline, _descriptorSets);
+  bool renderBegun = false;
 
-  vkCmdBindDescriptorSets(
-    buffer, 
-    VK_PIPELINE_BIND_POINT_GRAPHICS, 
-    _graphicsPipeline->pipelineLayout(), 
-    0, 1, (VkDescriptorSet *)&_descriptorSets[imageIndex], 
-    0, nullptr
-  );
+  CommandBuffer buffer = _commandBufferPools[imageIndex].acquire();
 
-  _state.lock();
+  buffer.beginRecording();
+  buffer.beginRenderPass(imageIndex, *_swapChain);
  
-  void* data;
-  vkMapMemory(*_device, _cameraUniforms[imageIndex], 0, sizeof(ViewTransform), 0, &data);
-  memcpy(data, &_state.camera().transform(), sizeof(ViewTransform));
-  vkUnmapMemory(*_device, _cameraUniforms[imageIndex]);
+  if (_graphicsPipeline) {
 
-  for (auto mesh : _state.meshes()) {
+    vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *_graphicsPipeline);
 
-    vkCmdPushConstants(
-      buffer,
-      _graphicsPipeline->pipelineLayout(),
-      VK_SHADER_STAGE_VERTEX_BIT,
-      0,
-      sizeof(mesh->transform()),
-      &mesh->transform()
+    vkCmdBindDescriptorSets(
+      buffer, 
+      VK_PIPELINE_BIND_POINT_GRAPHICS, 
+      _graphicsPipeline->pipelineLayout(), 
+      0, 1, (VkDescriptorSet *)&_descriptorSets[imageIndex], 
+      0, nullptr
     );
 
-    VkDeviceSize offsets[] = {0};
-    VkBuffer vkBuffer = mesh->vkBuffer();
-    vkCmdBindVertexBuffers(buffer, 0, 1, &vkBuffer, offsets);
-    vkCmdDraw(buffer, mesh->count(), 1, 0, 0);
+    _state.lock();
+ 
+    void* data;
+    vkMapMemory(*_device, _cameraUniforms[imageIndex], 0, sizeof(ViewTransform), 0, &data);
+    memcpy(data, &_state.camera().transform(), sizeof(ViewTransform));
+    vkUnmapMemory(*_device, _cameraUniforms[imageIndex]);
+ 
+    for (auto mesh : _state.meshes()) {
+
+      vkCmdPushConstants(
+        buffer,
+        _graphicsPipeline->pipelineLayout(),
+        VK_SHADER_STAGE_VERTEX_BIT,
+        0,
+        sizeof(mesh->transform()),
+        &mesh->transform()
+      );
+
+      VkDeviceSize offsets[] = {0};
+      VkBuffer vkBuffer = mesh->vkBuffer();
+      vkCmdBindVertexBuffers(buffer, 0, 1, &vkBuffer, offsets);
+      vkCmdDraw(buffer, mesh->count(), 1, 0, 0);
+    }
+
+    _state.unlock();
   }
 
+  if (_debugPipeline && _debugDraw) {
+
+    vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *_debugPipeline);
+
+    vkCmdBindDescriptorSets(
+      buffer, 
+      VK_PIPELINE_BIND_POINT_GRAPHICS, 
+      _debugPipeline->pipelineLayout(), 
+      0, 1, (VkDescriptorSet *)&_descriptorSets[imageIndex], 
+      0, nullptr
+    );
+
+    _state.lock();
+
+    void* data;
+    vkMapMemory(*_device, _cameraUniforms[imageIndex], 0, sizeof(ViewTransform), 0, &data);
+    memcpy(data, &_state.camera().transform(), sizeof(ViewTransform));
+    vkUnmapMemory(*_device, _cameraUniforms[imageIndex]);
+ 
+    for (auto mesh : _state.meshes()) {
+
+      vkCmdPushConstants(
+        buffer,
+        _graphicsPipeline->pipelineLayout(),
+        VK_SHADER_STAGE_VERTEX_BIT,
+        0,
+        sizeof(mesh->transform()),
+        &mesh->transform()
+      );
+
+      VkDeviceSize offsets[] = {0};
+      VkBuffer vkBuffer = mesh->vkBuffer();
+      vkCmdBindVertexBuffers(buffer, 0, 1, &vkBuffer, offsets);
+      vkCmdDraw(buffer, mesh->count(), 1, 0, 0);
+    }
+
+    _state.unlock();
+  }
+
+  buffer.endRenderPass();
   buffer.endRecording(); 
-  _state.unlock();
 }
 
 State &Vulkan::state() 
