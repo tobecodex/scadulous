@@ -11,8 +11,9 @@ class State
 {
 private:
   std::mutex _lock;
-
+  
   Camera _camera;
+  bool _animating = false;
   std::vector <Mesh *> _meshes;
 
 public:
@@ -25,6 +26,7 @@ public:
   bool lock();
   void unlock();
 
+  void toggleAnimation();
   void tick(float dt);
 };
 

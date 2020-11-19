@@ -36,9 +36,16 @@ std::vector<Mesh *> &State::meshes()
   return _meshes;
 }
 
+void State::toggleAnimation()
+{
+  _animating = !_animating;
+}
+
 void State::tick(float dt)
 {
-  for (auto m : _meshes) {
-    m->transform(glm::rotate(m->transform(), 0.01f, glm::vec3(0,1,0)));
+  if (_animating) {
+    for (auto m : _meshes) {
+      m->transform(glm::rotate(m->transform(), dt, glm::vec3(0,1,0)));
+    }
   }
 }

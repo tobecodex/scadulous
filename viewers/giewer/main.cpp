@@ -59,10 +59,7 @@ private:
   void update()
   {
     _vulkan->state().lock();
-    auto meshes = _vulkan->state().meshes();
-    for (auto m : meshes) {
-      //m->transform(glm::rotate(m->transform(), 0.0001f, glm::vec3(0, 1, 0)));
-    }
+    _vulkan->state().tick(0.0001f);
     _vulkan->state().unlock();
   }
 
@@ -153,6 +150,7 @@ private:
         break;
 
         case GLFW_KEY_O : {
+          _vulkan->state().toggleAnimation();
         }
         break;
 
