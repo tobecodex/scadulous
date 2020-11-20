@@ -38,6 +38,7 @@ private:
 
   VkInstance _instance;
   VkSurfaceKHR _surface;
+
   Device *_device = nullptr;
 
   void createFences();  

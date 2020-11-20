@@ -15,13 +15,18 @@ private:
   VkFormat _imageFormat;
   VkRenderPass _renderPass;
 
+  VkImage _depthImage;
+  VkImageView _depthImageView;
+  VkDeviceMemory _depthImageMemory;
+
   std::vector<VkImage> _images;
   std::vector<VkImageView> _imageViews;
   std::vector<VkFramebuffer> _frameBuffers;
 
-  void createImageViews(const Device &);
-  void createRenderPass(const Device &);
-  void createFrameBuffers(const Device &);
+  void createImageViews();
+  void createRenderPass();
+  void createFrameBuffers();
+  void createDepthImageView();
   
   VkExtent2D chooseExtent(const VkSurfaceCapabilitiesKHR &capabilities);
   VkPresentModeKHR choosePresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);

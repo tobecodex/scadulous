@@ -87,6 +87,8 @@ void Vulkan::createSwapChain()
 
 void Vulkan::createGraphicsPipeline()
 {
+
+  
   std::vector<VkDescriptorSetLayoutBinding> layoutBinding(1);
   for (int i = 0; i < layoutBinding.size(); i++) {
     layoutBinding[i].binding = i;
@@ -146,6 +148,7 @@ void Vulkan::createGraphicsPipeline()
 
   _debugPipeline = new GraphicsPipeline(*_swapChain, _descriptorSetLayouts);
   _debugPipeline->addPushConstantRange();
+  _debugPipeline->setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST);
   _debugPipeline->addShaderStage("shaders/shader.debug.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
   _debugPipeline->addShaderStage("shaders/shader.debug.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT);
   _debugPipeline->addShaderStage("shaders/shader.debug.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -320,7 +323,6 @@ void Vulkan::renderThread(Vulkan *self)
     self->draw();
   }
 }
-
 
 void Vulkan::recordCommandBuffer(uint32_t imageIndex)
 {

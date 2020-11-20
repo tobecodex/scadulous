@@ -13,6 +13,7 @@
 #include "DescriptorPool.h"
 #include "DescriptorSetLayout.h"
 
+
 VkPipelineRasterizationStateCreateInfo createRasterizationState()
 {
   VkPipelineRasterizationStateCreateInfo rasterizer{};
@@ -111,6 +112,31 @@ VkPushConstantRange createPushConstantRange()
   return pushConstantRange;
 }
 
+VkPipelineDepthStencilStateCreateInfo createDepthStencilStateInfo()
+{
+  VkPipelineDepthStencilStateCreateInfo depthStencil{};
+  depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+  depthStencil.depthTestEnable = VK_TRUE;
+  depthStencil.depthWriteEnable = VK_TRUE;
+  depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+  depthStencil.depthBoundsTestEnable = VK_FALSE;
+  depthStencil.minDepthBounds = 0.0f; // Optional
+  depthStencil.maxDepthBounds = 1.0f; // Optional
+  depthStencil.stencilTestEnable = VK_FALSE;
+  depthStencil.front = {}; // Optional
+  depthStencil.back = {}; // Optional
+  return depthStencil;
+}
+
+VkPipelineInputAssemblyStateCreateInfo createInputAssempblyStateInfo(VkPrimitiveTopology topology) 
+{
+  VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo{};
+  inputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+  inputAssemblyStateCreateInfo.topology = topology;
+  inputAssemblyStateCreateInfo.primitiveRestartEnable = VK_FALSE;
+  return inputAssemblyStateCreateInfo;
+}
+
 GraphicsPipeline::GraphicsPipeline(
   const SwapChain &swapChain, std::vector<VkDescriptorSetLayout> &descriptorSetLayouts
 ) : _layoutInfo{}, _pipelineInfo{}
@@ -122,9 +148,7 @@ GraphicsPipeline::GraphicsPipeline(
     LitVertex::getVertexAttributeDescriptions()
   );
 
-  _inputAssemblyStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-  _inputAssemblyStateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-  _inputAssemblyStateInfo.primitiveRestartEnable = VK_FALSE;
+  setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
   _viewports.push_back(createViewport(
     (float)swapChain.extent().width, (float)swapChain.extent().height
@@ -143,10 +167,17 @@ GraphicsPipeline::GraphicsPipeline(
 
   _colorBlendAttachments.push_back(createColorBlendAttachmentState());
   _colorBlendStateInfo = createColorBlendingStateInfo(_colorBlendAttachments);
+
+  _depthStencilStateInfo = createDepthStencilStateInfo();
 }
 
 GraphicsPipeline::~GraphicsPipeline()
 {
+}
+
+void GraphicsPipeline::setPrimitiveTopology(VkPrimitiveTopology topology)
+{
+  _inputAssemblyStateInfo = createInputAssempblyStateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 }
 
 void GraphicsPipeline::addShaderStage(const char *path, VkShaderStageFlagBits flags) 
@@ -211,7 +242,7 @@ void GraphicsPipeline::createPipeline(VkRenderPass renderPass)
   _pipelineInfo.pViewportState = &_viewportStateInfo;
   _pipelineInfo.pRasterizationState = &_rasterizationStateInfo;
   _pipelineInfo.pMultisampleState = &_multisampleStateInfo;
-  _pipelineInfo.pDepthStencilState = nullptr; // Optional
+  _pipelineInfo.pDepthStencilState = &_depthStencilStateInfo;
   _pipelineInfo.pColorBlendState = &_colorBlendStateInfo;
   _pipelineInfo.pDynamicState = nullptr; // Optional
 

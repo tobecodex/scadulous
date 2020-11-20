@@ -17,6 +17,7 @@ private:
   VkPipelineColorBlendStateCreateInfo _colorBlendStateInfo{};
   VkPipelineVertexInputStateCreateInfo _vertexInputStateInfo{};
   VkPipelineMultisampleStateCreateInfo _multisampleStateInfo{};
+  VkPipelineDepthStencilStateCreateInfo _depthStencilStateInfo{};
   VkPipelineInputAssemblyStateCreateInfo _inputAssemblyStateInfo{};
   VkPipelineRasterizationStateCreateInfo _rasterizationStateInfo{};
 
@@ -39,6 +40,8 @@ public:
 
   void createLayout();
   void createPipeline(VkRenderPass);
+  void setPrimitiveTopology(VkPrimitiveTopology topology);
+
   void addPushConstantRange();
   void addShaderStage(const char *path, VkShaderStageFlagBits);
 

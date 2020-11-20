@@ -27,9 +27,12 @@ void CommandBuffer::beginRenderPass(uint32_t imageIndex, SwapChain &swapChain)
   renderPassInfo.renderArea.offset = {0, 0};
   renderPassInfo.renderArea.extent = swapChain.extent();
 
-  VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
-  renderPassInfo.clearValueCount = 1;
-  renderPassInfo.pClearValues = &clearColor;
+  std::vector<VkClearValue> clearColors = {
+    {0.0f, 0.0f, 0.0f, 1.0f}, { 1.0f, 0 }
+  };
+
+  renderPassInfo.clearValueCount = (uint32_t)clearColors.size();
+  renderPassInfo.pClearValues = clearColors.data();
 
   vkCmdBeginRenderPass(_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
